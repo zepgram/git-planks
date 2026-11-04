@@ -31,7 +31,7 @@ git-of-theseus covers things git-planks does not: per-commit Kaplan-Meier surviv
 
 ## Install
 
-Download a binary for macOS, Linux or Windows from the [releases](https://github.com/zepgram/git-planks/releases), or build it with Rust 1.88 or later:
+Download a binary for macOS (Apple Silicon only), Linux or Windows from the [releases](https://github.com/zepgram/git-planks/releases), or build it with Rust 1.88 or later:
 
 ```sh
 cargo install --git https://github.com/zepgram/git-planks
