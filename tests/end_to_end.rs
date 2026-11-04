@@ -125,7 +125,7 @@ impl Repo {
     }
 }
 
-/// An absolute path as git reads it: Windows' canonical `\\\\?\\C:\\` form is refused.
+/// An absolute path as git reads it: Windows' canonical `\\?\C:\` form is refused.
 fn git_path(path: &Path) -> String {
     let absolute = path.canonicalize().unwrap();
     let text = absolute.to_string_lossy();
