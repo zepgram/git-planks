@@ -44,7 +44,8 @@ button { cursor: pointer; }
 .quiet { background: none; border: 0; color: var(--ink-2); padding: 4px 8px; border-radius: 6px; }
 .quiet:hover { background: var(--wash); color: var(--ink); }
 .actions { display: flex; gap: 2px; }
-h1 { font: 500 clamp(26px, 3.3vw, 46px)/1.14 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; letter-spacing: -.012em; margin: 26px 0 0; max-width: 24em; text-wrap: balance; font-variant-numeric: lining-nums; }
+h1 { font: 500 clamp(24px, 2.5vw, 34px)/1.2 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; letter-spacing: -.01em; margin: 22px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: lining-nums; }
+.headline-more { font: 400 clamp(16px, 1.4vw, 19px)/1.35 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; color: var(--ink-2); margin: 4px 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: lining-nums; min-height: 1.35em; }
 h2 { font: 500 25px/1.2 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; margin: 0; }
 .query { margin: 20px 0 0; font-size: 17px; color: var(--ink-2); line-height: 2.05; max-width: 60em; }
 .query select { appearance: none; -webkit-appearance: none; background: none; border: 0; border-bottom: 2px solid var(--axis); border-radius: 0; color: var(--ink); font-weight: 600; padding: 0 16px 0 1px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-size: 4px 4px; background-position: right 7px center, right 3px center; background-repeat: no-repeat; max-width: 15em; }
@@ -68,7 +69,7 @@ svg text.event { fill: var(--ink-2); font-size: 11px; font-variant-numeric: norm
 .rail-date { font-weight: 600; font-variant-numeric: tabular-nums; }
 .play { background: var(--ink); color: var(--page); border: 0; border-radius: 16px; padding: 5px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
 .play:hover { opacity: .85; }
-.rail-note { color: var(--ink-2); font-size: 13px; min-height: 20px; }
+.rail-note { color: var(--ink-2); font-size: 13px; height: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rank { position: relative; margin-top: 6px; }
 .row { position: absolute; left: 0; right: 0; height: 44px; display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-content: center; border: 0; background: none; text-align: left; padding: 0 6px; border-radius: 6px; transition: transform .28s ease, opacity .14s; }
 .row:hover, .row.on { background: var(--wash); }
@@ -133,6 +134,10 @@ footer a { color: inherit; }
   .findings { grid-template-columns: minmax(0, 1fr); }
   .query { font-size: 16px; }
 }
+@media (max-width: 700px) {
+  h1 { white-space: normal; min-height: 3.6em; }
+  .headline-more { white-space: normal; min-height: 4.05em; }
+}
 @media (prefers-reduced-motion: reduce) {
   .row, .bands path { transition: none; }
 }
@@ -150,6 +155,7 @@ footer a { color: inherit; }
     </div>
   </div>
   <h1 id="headline"></h1>
+  <p class="headline-more" id="headlineMore"></p>
   <div class="query" id="query"></div>
   <div class="options" id="options" hidden></div>
 
@@ -441,9 +447,10 @@ const subjectName = () => (state.person === ALL ? scopeLabel() : `${scopeLabel()
 /* The headline is computed: it must stay true for every filter and every date. */
 const headline = index => {
   const total = view.total[index];
-  if (!total) return `No lines match this selection in ${subjectName()}.`;
+  if (!total) return { lead: `No lines match this selection in ${subjectName()}.`, more: '' };
   const when = `were alive on ${longDate(TIMES[index])}`;
-  const parts = [`${words(total)} lines ${when} in ${subjectName()}.`];
+  const lead = `${words(total)} lines ${when} in ${subjectName()}.`;
+  const parts = [];
   let recent = 0;
   const cut = TIMES[index] - YEAR;
   for (const [cohort, values] of view.quarters) if (quarterEnd(cohort) > cut) recent += values[index];
@@ -456,7 +463,7 @@ const headline = index => {
     }
     if (best) parts.push(`${best} wrote the most: ${percent(bestLines / total * 100)}.`);
   }
-  return parts.join(' ');
+  return { lead, more: parts.join(' ') };
 };
 
 const peopleByLines = index => [...view.people.entries()]
@@ -765,7 +772,13 @@ const renderRank = index => {
 /* Runs on every pointer move: everything here reads the arrays computed by `compute`. */
 const update = () => {
   const index = current();
-  document.getElementById('headline').textContent = headline(index);
+  const { lead, more } = headline(index);
+  const title = document.getElementById('headline');
+  title.textContent = lead;
+  title.title = lead;
+  const detail = document.getElementById('headlineMore');
+  detail.textContent = more;
+  detail.title = more;
   document.getElementById('railDate').textContent = longDate(TIMES[index]);
   const near = state.events ? DATA.events.filter(e => eventVisible(e) && eventTime(e) <= TIMES[index] && (index === 0 || eventTime(e) > TIMES[index - 1])) : [];
   document.getElementById('railNote').textContent = near.map(e => (e.type === 'model' ? `${e.label} released` : e.label)).join(', ');
