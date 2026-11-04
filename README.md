@@ -2,12 +2,14 @@
 
 **Who owns the code that is still alive, across your whole stack?**
 
-If every plank of a ship gets replaced, is it still the same ship? `git-planks` answers the software version of the question: for each week of your history, it counts the lines still in place and who wrote them. It reads one repository or an entire GitHub, GitLab or Bitbucket organization, and gives you one interactive HTML report. Same commits and same cut-off date give the same report, to the byte.
+If every plank of a ship gets replaced, is it still the same ship? `git-planks` asks the same of your code: for each point of your history, it counts the lines still in place and who wrote them. It reads one repository or a whole GitHub, GitLab or Bitbucket organization, and writes one interactive page you can open anywhere.
 
-![Report of the Pallets organization, by developer](docs/demo.png)
+**[Open the live demo on the Redis stack](https://zepgram.github.io/git-planks/)** (the server and three of its clients) and press *Play history*.
+
+[![The report on the Redis stack, by developer](docs/demo.png)](https://zepgram.github.io/git-planks/)
 
 ```sh
-git-planks analyze github:pallets --open
+git-planks analyze github:your-org --open
 ```
 
 ## Why
@@ -61,16 +63,17 @@ A folder is analyzed at its checked-out `HEAD`, even detached, and needs its ful
 
 ## What you get
 
-`planks-report/report.html` holds everything in one file, with no external request:
+`planks-report/report.html` holds everything in one file, with no external request, so you can open it offline or attach it to a message.
 
-- **Surviving lines over time**, stacked by developer, year written, language or repository, in lines or share.
-- **Filters** that apply to the whole page: scope, repository, person, period, kind of content (code, tests, config, data, docs, agent harness), kind of author (humans, agents, bots, imports).
-- **Monthly activity**: lines added and deleted, and commits.
-- **Code survival**: how much of each year's code is still there as it ages.
-- **People**: surviving lines, share, change, commits, added and deleted lines, retention, first and last activity, for everyone.
-- **Your milestones** and Claude model releases on the timeline, as context.
+- **A page that says what it sees.** The headline is computed from your data, and stays true for every filter and every date.
+- **Filters you can read.** You complete a sentence: "Show lines alive by developer in all repositories over all history, written by everyone". Content and author types sit behind *More options*.
+- **Time travel.** Move over the chart and the ranking beside it follows the date. Click to pin a date. *Play history* replays the life of the code while people overtake one another.
+- **Findings you can act on**, each one a click away from the chart: how few people wrote half of the code, the half-life of a line, the fastest growth and the largest clean-up, the share of code whose authors have left.
+- **Monthly activity**, and **how long code lasts**, year by year.
+- **Everyone who wrote the code**, searchable, with their own curve, change, commits, retention and last activity.
+- **Links and images to share.** Every view has its own link, and *Save image* exports the chart as a PNG.
 
-Next to it, `manifest.json` pins what was analyzed, `data.json` holds the figures, and `identities.json` shows which git identities were merged. The report and `data.json` contain names but no email addresses. `manifest.json` holds your repository addresses and `[[person]]` entries, and `identities.json` holds addresses: read them before sharing.
+Next to the page, `manifest.json` pins what was analyzed, `data.json` holds the figures, and `identities.json` shows which git identities were merged. The report and `data.json` contain names but no email addresses. `manifest.json` holds your repository addresses and `[[person]]` entries, and `identities.json` holds addresses: read them before sharing.
 
 ## Trust the numbers
 
@@ -93,12 +96,13 @@ This lists the biggest jumps with the files behind them, and the largest counted
 ## How it counts
 
 1. Each repository is mirrored under `~/.cache/git-planks`. Your checkouts are never touched.
-2. One commit per week is taken from the first-parent history of the branch the remote serves as `HEAD` (Monday 00:00 UTC, plus the cut-off day). `--interval-weeks 4` speeds up very large histories.
+2. One commit per week is taken from the first-parent history of the branch the remote serves as `HEAD` (Monday 00:00 UTC, plus the cut-off day). `--interval-weeks 26` makes very large histories affordable.
 3. Each file that changed since the previous sample goes through `git blame -w`, in parallel. A line belongs to the author of the commit that wrote it.
 4. Files are kept when their extension is a known text format and they match no exclusion: lockfiles, `vendor/`, `dist/`, generated code and similar. Everything sorted, nothing timestamped, so the same input gives the same bytes.
 
 ## Limits
 
+- **Very large histories are slow.** Blame runs on each changed file of each sample: at the rate we measured, the whole Linux kernel would take about a day per pass on a 14-core machine, even with one sample a year. Narrow a monorepo with `include`, or raise `--interval-weeks`.
 - **Lines are not value.** Reviews, architecture, mentoring and deleting code barely show. Please do not rank people with this.
 - A line reformatted beyond whitespace, or moved between files, changes author.
 - A commit written with an AI assistant stays under the name of whoever pushed it, so the "Agents" series only counts commits made under an agent's own identity.

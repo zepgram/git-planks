@@ -442,12 +442,12 @@ const subjectName = () => (state.person === ALL ? scopeLabel() : `${scopeLabel()
 const headline = index => {
   const total = view.total[index];
   if (!total) return `No lines match this selection in ${subjectName()}.`;
-  const when = index === LAST ? 'are alive' : `were alive on ${longDate(TIMES[index])}`;
+  const when = `were alive on ${longDate(TIMES[index])}`;
   const parts = [`${words(total)} lines ${when} in ${subjectName()}.`];
   let recent = 0;
   const cut = TIMES[index] - YEAR;
   for (const [cohort, values] of view.quarters) if (quarterEnd(cohort) > cut) recent += values[index];
-  if (recent > 0 && TIMES[index] - TIMES[view.first] > YEAR * 1.5) parts.push(`${percent(recent / total * 100)} of them were written in the ${index === LAST ? 'last' : 'previous'} 12 months.`);
+  if (recent > 0 && TIMES[index] - TIMES[view.first] > YEAR * 1.5) parts.push(`${percent(recent / total * 100)} of them had been written in the previous 12 months.`);
   if (state.person === ALL) {
     let best = null;
     let bestLines = 0;
@@ -508,7 +508,7 @@ const findings = () => {
     let count = 0;
     for (const [, values] of owners) { sum += values[LAST]; count++; if (sum >= total / 2) break; }
     out.push({
-      say: count === 1 ? `One person wrote half of the code alive today: ${owners[0][0]}.` : `${integer.format(count)} of ${integer.format(owners.length)} people wrote half of the code alive today.`,
+      say: count === 1 ? `One person wrote half of the surviving code: ${owners[0][0]}.` : `${integer.format(count)} of ${integer.format(owners.length)} people wrote half of the surviving code.`,
       why: 'The smaller this number, the more knowledge depends on few people.',
       go: () => setDim('person'),
     });
@@ -546,7 +546,7 @@ const findings = () => {
     const cutMonth = new Date(TIMES[LAST] - YEAR).toISOString().slice(0, 7);
     let departed = 0;
     for (const [name, values] of owners) if ((view.lastSeen.get(name) || '') < cutMonth) departed += values[LAST];
-    if (departed > 0) out.push({ say: `${percent(departed / total * 100)} of today's lines were written by people with no commit in the last 12 months.`, why: 'Code whose authors may no longer be around to explain it.', go: () => setDim('person') });
+    if (departed > 0) out.push({ say: `${percent(departed / total * 100)} of the surviving lines come from people with no commit in the last 12 months.`, why: 'Code whose authors may no longer be around to explain it.', go: () => setDim('person') });
   }
   if (HAS_MODELS) {
     const reference = TIMES.findIndex(time => time >= Date.parse('2025-05-22T00:00:00Z'));
@@ -766,7 +766,7 @@ const renderRank = index => {
 const update = () => {
   const index = current();
   document.getElementById('headline').textContent = headline(index);
-  document.getElementById('railDate').textContent = index === LAST ? `Today, ${longDate(TIMES[index])}` : longDate(TIMES[index]);
+  document.getElementById('railDate').textContent = longDate(TIMES[index]);
   const near = state.events ? DATA.events.filter(e => eventVisible(e) && eventTime(e) <= TIMES[index] && (index === 0 || eventTime(e) > TIMES[index - 1])) : [];
   document.getElementById('railNote').textContent = near.map(e => (e.type === 'model' ? `${e.label} released` : e.label)).join(', ');
   document.getElementById('hint').textContent = state.pinned ? 'Date pinned. Click the chart to release it.' : 'Move over the chart to go back in time. Click to pin a date.';

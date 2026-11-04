@@ -13,8 +13,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: macos-latest, target: aarch64-apple-darwin }
-          - { os: macos-latest, target: x86_64-apple-darwin }
+          - { os: macos-15, target: aarch64-apple-darwin }
+          - { os: macos-15, target: x86_64-apple-darwin }
           - { os: ubuntu-latest, target: x86_64-unknown-linux-musl }
           - { os: ubuntu-24.04-arm, target: aarch64-unknown-linux-musl }
           - { os: windows-latest, target: x86_64-pc-windows-msvc }
@@ -48,6 +48,8 @@ jobs:
 
   publish:
     needs: build
+    # GitHub can lack macOS runners for hours: a release ships what was built, and can be re-run.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v5
@@ -57,7 +59,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          ls -l
+          shopt -s nullglob
           archives=(git-planks-*.tar.gz git-planks-*.zip)
           sha256sum "${archives[@]}" > SHA256SUMS
           gh release create "$GITHUB_REF_NAME" "${archives[@]}" SHA256SUMS \
