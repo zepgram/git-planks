@@ -1,0 +1,60 @@
+# Copy to ./planks.toml: git-planks reads it automatically. Every section is optional.
+
+title = "Acme platform"
+# model_events = false      # hide AI model releases from the chart
+
+# One [[source]] per origin. `group` becomes a scope in the report.
+[[source]]
+from = "github:acme"
+group = "product"
+exclude = ["*-archive", "sandbox-*"]
+
+[[source]]
+from = "gitlab:https://git.acme.dev/platform/infra"   # self-hosted, subgroups included: tokens need --trust-host
+group = "infrastructure"
+
+[[source]]
+from = "git@bitbucket.org:acme/legacy-erp.git"   # only your SSH key is needed
+group = "legacy"
+
+[[source]]
+from = "git@github.com:acme/monorepo-root.git"
+submodules = true
+
+[rules]
+exclude = ["**/*.sql.gz", "**/seed-data/**"]     # on top of the built-in list
+# default_kinds = ["code", "tests"]              # what the report shows when it opens
+# blame_options = ["-w", "-M"]                   # only -w, -M and -C are accepted: -M and -C are slower
+# import_subject = "^chore: import "             # commits nobody really wrote
+
+# Classify paths that the built-in rules get wrong. Kinds: code, tests, config, data, docs, agents.
+# kind_rules = [["code", "\\.flow\\.xml$"]]
+
+[rules.languages]
+tmpl = "HTML"
+
+# Rules for one repository, by its name in `git-planks repos`.
+[repos.shop]
+include = ["app/code/Acme/**", "app/design/**"]  # count only your code in a vendored framework
+import_subject = "^Initial commit$"              # the bulk import goes to "Imports (unattributed)"
+
+# Identities are merged automatically; identities.json shows how. Fix what it got wrong here.
+[[person]]
+name = "Ada Lovelace"
+emails = ["ada@acme.dev", "ada.lovelace@old-company.com"]
+names = ["ada", "A. Lovelace"]
+
+[[person]]
+name = "Release train"
+type = "bot"
+names = ["ci-release"]
+
+# Your own milestones on the chart. `repo` limits one to the views that include this repository.
+[[event]]
+date = "2025-09-01"
+label = "Platform team created"
+
+[[event]]
+date = "2026-02-10"
+label = "ERP migration"
+repo = "legacy-erp"

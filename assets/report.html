@@ -1,0 +1,912 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code ownership · git-planks</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,.10); --wash: rgba(11,11,11,.05);
+  --other: #a3a29c; --import: #c3c2b7; --accent: #2a78d6;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --ramp: #86b6ef,#6da7ec,#5598e7,#3987e5,#2a78d6,#256abf,#1c5cab,#184f95,#104281,#0d366b;
+  --fill: .5;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,.10); --wash: rgba(255,255,255,.06);
+    --other: #6b6a66; --import: #4d4c49; --accent: #3987e5;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --ramp: #184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6;
+    --fill: .62;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,.10); --wash: rgba(255,255,255,.06);
+  --other: #6b6a66; --import: #4d4c49; --accent: #3987e5;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --ramp: #184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6;
+  --fill: .62;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1320px; margin: 0 auto; padding: 24px 24px 64px; display: grid; gap: 16px; }
+h1 { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -.01em; }
+h2 { margin: 0; font-size: 16px; font-weight: 600; }
+.sub { color: var(--ink-2); margin-top: 4px; }
+.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
+.kpis { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: flex-end; }
+.kpi .label { color: var(--ink-2); font-size: 12px; }
+.kpi .value { font-size: 26px; font-weight: 600; line-height: 1.15; }
+.kpi.hero .value { font-size: 48px; letter-spacing: -.02em; line-height: 1; }
+.kpi .delta { color: var(--ink-2); font-size: 12px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; position: sticky; top: 0; z-index: 5; padding: 10px 0; background: var(--page); }
+.field { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; }
+.seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: none; color: var(--ink-2); padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
+.seg button:hover { background: var(--wash); }
+.seg button[aria-pressed="true"] { background: var(--wash); color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+select { background: var(--surface); color: var(--ink); border: 1px solid var(--ring); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; max-width: 220px; }
+button:focus-visible, select:focus-visible, svg:focus-visible, th:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
+.card header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
+.card header p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
+.chart { position: relative; width: 100%; }
+svg { display: block; width: 100%; height: auto; overflow: visible; }
+svg text { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg text.event { fill: var(--ink-2); font-size: 11px; font-variant-numeric: normal; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.legend button { display: inline-flex; gap: 6px; align-items: center; background: none; border: 0; padding: 3px 4px; border-radius: 6px; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.legend button:hover { background: var(--wash); }
+.legend button.off { opacity: .4; }
+.legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+.legend .val { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.25); padding: 8px 10px; min-width: 190px; font-size: 12px; z-index: 4; display: none; }
+.tip .date { color: var(--ink-2); margin-bottom: 4px; }
+.tip .row { display: grid; grid-template-columns: 14px auto 1fr; gap: 6px; align-items: center; }
+.tip .key { height: 2px; border-radius: 1px; }
+.tip .num { font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
+.tip .name { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
+.tip .total { border-top: 1px solid var(--grid); margin-top: 4px; padding-top: 4px; }
+.tip .note { color: var(--ink-2); margin-top: 4px; border-top: 1px solid var(--grid); padding-top: 4px; }
+.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 980px) { .pair { grid-template-columns: minmax(0, 1fr); } }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: right; color: var(--ink-2); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--axis); cursor: pointer; white-space: nowrap; user-select: none; }
+th:first-child, td:first-child { text-align: left; }
+td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.text { text-align: left; color: var(--ink-2); white-space: normal; min-width: 280px; }
+th.text { text-align: left; cursor: default; }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--wash); }
+tr.selected { background: var(--wash); box-shadow: inset 2px 0 0 var(--accent); }
+.tag { color: var(--muted); font-size: 11px; margin-left: 6px; }
+.scroll { overflow-x: auto; }
+details summary { cursor: pointer; color: var(--ink-2); }
+.method { display: grid; gap: 8px; color: var(--ink-2); font-size: 13px; }
+.method ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.method code { font-size: 12px; color: var(--ink); word-break: break-all; }
+.empty { padding: 48px; text-align: center; color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main>
+  <section class="top">
+    <div>
+      <h1 id="title"></h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+  </section>
+
+  <section class="filters" aria-label="Filters">
+    <div class="field">Period <select id="period"></select></div>
+    <div class="field">Scope <span class="seg" id="scope"></span></div>
+    <div class="field">Repository <select id="repo"></select></div>
+    <div class="field">Person <select id="person"></select></div>
+    <div class="field">View <span class="seg" id="dim"></span></div>
+    <div class="field">Unit <span class="seg" id="unit"></span></div>
+    <div class="field">Content <span class="seg" id="kinds"></span></div>
+    <div class="field">Authors <span class="seg" id="types"></span></div>
+    <div class="field"><span class="seg" id="toggles"></span></div>
+  </section>
+
+  <section class="card">
+    <div class="chart" id="main"></div>
+    <div class="legend" id="legend"></div>
+    <details>
+      <summary>Show the chart data</summary>
+      <div class="scroll" id="mainTable"></div>
+    </details>
+  </section>
+
+  <section class="pair">
+    <div class="card">
+      <header>
+        <div><h2>Monthly activity</h2><p id="activitySub"></p></div>
+        <span class="seg" id="metric"></span>
+      </header>
+      <div class="chart" id="activity"></div>
+      <div class="legend" id="activityLegend"></div>
+    </div>
+    <div class="card">
+      <header>
+        <div><h2>Code survival</h2><p>Share of each year's lines still present as they age, for the ten most recent years of this scope.</p></div>
+      </header>
+      <div class="chart" id="survival"></div>
+      <div class="legend" id="survivalLegend"></div>
+    </div>
+  </section>
+
+  <section class="card">
+    <header><div><h2>People</h2><p>Surviving lines at the end of the period; change and commits over the period. Retention: surviving lines divided by all lines ever added. Click a row to filter the report on that person.</p></div></header>
+    <div class="scroll" id="people"></div>
+  </section>
+
+  <section class="card">
+    <details>
+      <summary>Method and reproducibility</summary>
+      <div class="method" id="method"></div>
+    </details>
+  </section>
+</main>
+
+<script>
+const DATA = /*__DATA__*/null;
+const SVG = 'http://www.w3.org/2000/svg';
+const LOCALE = 'en-US';
+const TIMES = DATA.dates.map(d => Date.parse(d + 'T00:00:00Z'));
+const LAST = DATA.dates.length - 1;
+const GROUPS = [...new Set(DATA.repos.map(r => r.group))].sort();
+const REPO_INDEX = new Map(DATA.repos.map((repo, index) => [repo.name, index]));
+const TYPES = [['human', 'Humans'], ['agent', 'Agents'], ['bot', 'Bots'], ['import', 'Imports']];
+const TYPE_TAG = { agent: 'agent', bot: 'bot', import: 'import' };
+const DIMS = [['person', 'Developers'], ['cohort', 'Cohorts'], ['language', 'Languages'], ['repo', 'Repositories']];
+const OTHER = '__other__';
+const ALL = '*all*';
+const HAS_MODELS = DATA.events.some(event => event.type === 'model');
+
+const state = {
+  period: 'all', scope: ALL, repo: ALL, person: ALL, dim: 'person', unit: 'lines', metric: 'added', isolate: null, sort: 'lines', sortDir: -1, events: true,
+  kinds: new Set(DATA.kinds.filter(k => k.default).map(k => k.key)),
+  types: new Set(TYPES.map(t => t[0])),
+};
+
+const el = (tag, props = {}, ...children) => {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === 'class') node.className = value;
+    else if (key === 'text') node.textContent = value;
+    else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+    else node.setAttribute(key, value);
+  }
+  node.append(...children);
+  return node;
+};
+const svgEl = (tag, attrs = {}) => {
+  const node = document.createElementNS(SVG, tag);
+  for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value);
+  return node;
+};
+const css = name => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+const integer = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
+const compact = value => {
+  const size = Math.abs(value);
+  if (size >= 1e6) return (value / 1e6).toLocaleString(LOCALE, { maximumFractionDigits: 2 }) + ' M';
+  if (size >= 1e4) return (value / 1e3).toLocaleString(LOCALE, { maximumFractionDigits: 1 }) + ' k';
+  return integer.format(value);
+};
+const signed = value => (value > 0 ? '+' : '') + compact(value);
+const percent = value => value.toLocaleString(LOCALE, { maximumFractionDigits: 1 }) + ' %';
+const longDate = time => new Date(time).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const monthLabel = time => new Date(time).toLocaleDateString(LOCALE, { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const niceStep = max => {
+  const raw = Math.max(max, 1) / 5;
+  const power = 10 ** Math.floor(Math.log10(raw));
+  const unit = raw / power;
+  return power * (unit <= 1 ? 1 : unit <= 2 ? 2 : unit <= 2.5 ? 2.5 : unit <= 5 ? 5 : 10);
+};
+
+const repoAllowed = index => {
+  const repo = DATA.repos[index];
+  if (state.repo !== ALL) return repo.name === state.repo;
+  return state.scope === ALL || repo.group === state.scope;
+};
+const personAllowed = index => {
+  if (state.person !== ALL) return DATA.people[index].name === state.person;
+  return state.types.has(DATA.people[index].type);
+};
+const KIND_INDEX = Object.fromEntries(DATA.kinds.map((kind, index) => [kind.key, index]));
+const kindAllowed = index => state.kinds.has(DATA.kinds[index].key);
+const kindMask = () => DATA.kinds.reduce((mask, kind, index) => state.kinds.has(kind.key) ? mask | (1 << index) : mask, 0);
+
+const groupKey = (dim, row) => {
+  if (dim === 'person') return DATA.people[row[1]].name;
+  if (dim === 'repo') return DATA.repos[row[0]].name;
+  if (dim === 'language') return DATA.languages[row[2]];
+  if (dim === 'quarter') return DATA.cohorts[row[4]];
+  return DATA.cohorts[row[4]].slice(0, 4);
+};
+const collect = dim => {
+  const deltas = new Map();
+  for (const row of DATA.series) {
+    if (!repoAllowed(row[0]) || !personAllowed(row[1]) || !kindAllowed(row[3])) continue;
+    const key = groupKey(dim, row);
+    let delta = deltas.get(key);
+    if (!delta) deltas.set(key, delta = new Float64Array(DATA.dates.length));
+    const points = row[5];
+    let previous = 0;
+    for (let i = 0; i < points.length; i += 2) {
+      delta[points[i]] += points[i + 1] - previous;
+      previous = points[i + 1];
+    }
+  }
+  const out = new Map();
+  for (const [key, delta] of deltas) {
+    let total = 0;
+    out.set(key, Array.from(delta, value => (total += value)));
+  }
+  return out;
+};
+
+const seriesHues = () => Array.from({ length: 8 }, (_, i) => css(`--s${i + 1}`));
+const ramp = () => css('--ramp').split(',').map(c => c.trim());
+
+const assignColors = () => {
+  const totals = { person: new Map(), repo: new Map(), language: new Map() };
+  const scopeTotals = new Map();
+  const defaults = DATA.kinds.filter(k => k.default).map(k => KIND_INDEX[k.key]);
+  for (const row of DATA.series) {
+    if (!defaults.includes(row[3])) continue;
+    const value = row[5][row[5].length - 1];
+    const person = DATA.people[row[1]];
+    const repo = DATA.repos[row[0]];
+    if (person.type !== 'import') totals.person.set(person.name, (totals.person.get(person.name) || 0) + value);
+    totals.repo.set(repo.name, (totals.repo.get(repo.name) || 0) + value);
+    totals.language.set(DATA.languages[row[2]], (totals.language.get(DATA.languages[row[2]]) || 0) + value);
+    if (person.type === 'import') continue;
+    for (const scope of [ALL, `group:${repo.group}`, `repo:${repo.name}`]) {
+      if (!scopeTotals.has(scope)) scopeTotals.set(scope, new Map());
+      const map = scopeTotals.get(scope);
+      map.set(person.name, (map.get(person.name) || 0) + value);
+    }
+  }
+  const rank = map => [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
+  const conflicts = new Map();
+  for (const map of scopeTotals.values()) {
+    const top = rank(map).slice(0, 8);
+    for (const a of top) {
+      if (!conflicts.has(a)) conflicts.set(a, new Set());
+      for (const b of top) if (a !== b) conflicts.get(a).add(b);
+    }
+  }
+  const person = new Map();
+  for (const name of rank(totals.person)) {
+    const taken = new Set([...(conflicts.get(name) || [])].map(other => person.get(other)));
+    let slot = 0;
+    while (slot < 8 && taken.has(slot)) slot++;
+    person.set(name, slot < 8 ? slot : person.size % 8);
+  }
+  const byRank = map => new Map(rank(map).map((name, index) => [name, index < 8 ? index : -1]));
+  return { person, repo: byRank(totals.repo), language: byRank(totals.language) };
+};
+const SLOTS = assignColors();
+
+const buildVisible = (entries, dim) => {
+  const sorted = entries.filter(e => e.score > 0).sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
+  if (dim === 'cohort') {
+    const steps = ramp();
+    const years = sorted.map(e => e.key).sort();
+    return years.map((key, index) => {
+      const position = years.length > 1 ? index / (years.length - 1) : 1;
+      return { ...sorted.find(e => e.key === key), label: key, color: steps[Math.round(position * (steps.length - 1))] };
+    });
+  }
+  const hues = seriesHues();
+  const used = new Set();
+  const visible = [];
+  const rest = [];
+  let imported = null;
+  for (const entry of sorted) {
+    const person = dim === 'person' && DATA.people.find(p => p.name === entry.key);
+    if (person && person.type === 'import') { imported = { ...entry, label: entry.key, color: css('--import') }; continue; }
+    const slot = SLOTS[dim] ? SLOTS[dim].get(entry.key) : -1;
+    if (slot === undefined || slot < 0 || used.has(slot) || visible.length >= 8) { rest.push(entry); continue; }
+    used.add(slot);
+    visible.push({ ...entry, label: entry.key, color: hues[slot] });
+  }
+  if (rest.length) {
+    const length = rest[0].values.length;
+    const values = Array.from({ length }, (_, i) => rest.reduce((sum, entry) => sum + entry.values[i], 0));
+    const score = rest.reduce((sum, entry) => sum + entry.score, 0);
+    const noun = dim === 'person' ? 'people' : dim === 'repo' ? 'repositories' : 'languages';
+    visible.push({ key: OTHER, label: `Others (${rest.length} ${noun})`, color: css('--other'), values, score, members: rest });
+  }
+  if (imported) visible.push(imported);
+  return visible;
+};
+
+const rangeStart = () => {
+  if (state.period === 'all') return firstActive();
+  const end = TIMES[LAST];
+  const limit = state.period === 'claude4' ? Date.parse('2025-05-22T00:00:00Z') : end - Number(state.period) * 30.44 * 86400000;
+  const index = TIMES.findIndex(time => time >= limit);
+  return Math.max(index < 0 ? 0 : index, firstActive());
+};
+let activeStart = 0;
+const firstActive = () => activeStart;
+
+const makeTip = host => {
+  const tip = el('div', { class: 'tip' });
+  host.append(tip);
+  return tip;
+};
+const placeTip = (tip, host, x, y) => {
+  tip.style.display = 'block';
+  const width = tip.offsetWidth;
+  const hostWidth = host.clientWidth;
+  tip.style.left = `${x + 14 + width > hostWidth ? Math.max(0, x - width - 14) : x + 14}px`;
+  tip.style.top = `${Math.max(0, y)}px`;
+};
+const tipRow = (color, value, name) => el('div', { class: 'row' }, el('span', { class: 'key', style: `background:${color}` }), el('span', { class: 'num', text: value }), el('span', { class: 'name', text: name }));
+
+const xTicks = (from, to) => {
+  const span = (to - from) / 86400000;
+  const months = span > 1500 ? 12 : span > 700 ? 6 : span > 300 ? 3 : span > 100 ? 1 : 1;
+  const ticks = [];
+  const start = new Date(from);
+  let cursor = Date.UTC(start.getUTCFullYear(), Math.floor(start.getUTCMonth() / months) * months + months, 1);
+  while (cursor <= to) {
+    ticks.push(cursor);
+    const date = new Date(cursor);
+    cursor = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1);
+  }
+  return { ticks, label: months === 12 ? time => String(new Date(time).getUTCFullYear()) : monthLabel };
+};
+
+const renderMain = () => {
+  const host = document.getElementById('main');
+  const groups = collect(state.dim);
+  let first = LAST;
+  for (const values of groups.values()) {
+    const index = values.findIndex(value => value > 0);
+    if (index >= 0 && index < first) first = index;
+  }
+  activeStart = first;
+  const start = rangeStart();
+  const entries = [...groups.entries()].map(([key, values]) => ({ key, values, score: values[LAST] || Math.max(...values.slice(start)) }));
+  const all = buildVisible(entries, state.dim);
+  const visible = all.filter(entry => !state.isolate || entry.key === state.isolate);
+  host.replaceChildren();
+  const legend = document.getElementById('legend');
+  legend.replaceChildren();
+  const totalAt = index => [...groups.values()].reduce((sum, values) => sum + values[index], 0);
+  if (!all.length) {
+    host.append(el('div', { class: 'empty', text: 'No lines match this filter.' }));
+    return { start, end: LAST, totalAt };
+  }
+  const width = Math.max(host.clientWidth, 320);
+  const height = Math.round(Math.min(480, Math.max(300, width * 0.42)));
+  const margin = { top: state.events ? 66 : 14, right: 16, bottom: 28, left: 56 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', tabindex: 0, 'aria-label': 'Surviving lines over time' });
+  const from = TIMES[start];
+  const to = TIMES[LAST];
+  const xOf = time => margin.left + (to > from ? (time - from) / (to - from) : 0) * plotW;
+  const asShare = state.unit === 'share';
+  const stackTotals = TIMES.map((_, i) => visible.reduce((sum, entry) => sum + entry.values[i], 0));
+  let maxY = 0;
+  for (let i = start; i <= LAST; i++) maxY = Math.max(maxY, asShare ? 100 : stackTotals[i]);
+  const step = asShare ? 25 : niceStep(maxY);
+  const top = asShare ? 100 : Math.ceil(maxY / step) * step || step;
+  const yOf = value => margin.top + plotH - (value / top) * plotH;
+  for (let value = 0; value <= top + 1e-9; value += step) {
+    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
+    const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
+    label.textContent = asShare ? `${value} %` : compact(value);
+    svg.append(label);
+  }
+  const { ticks, label: tickLabel } = xTicks(from, to);
+  const minGap = 62;
+  let lastTick = -Infinity;
+  for (const tick of ticks) {
+    const x = xOf(tick);
+    if (x - lastTick < minGap) continue;
+    lastTick = x;
+    svg.append(svgEl('line', { x1: x, x2: x, y1: height - margin.bottom, y2: height - margin.bottom + 4, stroke: css('--axis') }));
+    const label = svgEl('text', { x, y: height - 8, 'text-anchor': 'middle' });
+    label.textContent = tickLabel(tick);
+    svg.append(label);
+  }
+  const cumulative = new Float64Array(TIMES.length);
+  const valueOf = (entry, i) => asShare ? (stackTotals[i] ? entry.values[i] / stackTotals[i] * 100 : 0) : entry.values[i];
+  for (const entry of visible) {
+    const upper = [];
+    const lower = [];
+    for (let i = start; i <= LAST; i++) {
+      const base = cumulative[i];
+      const next = base + valueOf(entry, i);
+      cumulative[i] = next;
+      upper.push(`${xOf(TIMES[i]).toFixed(1)},${yOf(next).toFixed(1)}`);
+      lower.push(`${xOf(TIMES[i]).toFixed(1)},${yOf(base).toFixed(1)}`);
+    }
+    svg.append(svgEl('path', { d: `M${upper.join('L')}L${lower.reverse().join('L')}Z`, fill: entry.color, 'fill-opacity': css('--fill') }));
+    svg.append(svgEl('path', { d: `M${upper.join('L')}`, fill: 'none', stroke: entry.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+  }
+  const eventVisible = e => !e.repo || (REPO_INDEX.has(e.repo) && repoAllowed(REPO_INDEX.get(e.repo)));
+  const events = state.events ? DATA.events.filter(e => { const t = Date.parse(e.date + 'T00:00:00Z'); return t >= from && t <= to && eventVisible(e); }) : [];
+  const lanes = [-Infinity, -Infinity, -Infinity, -Infinity];
+  for (const event of [...events].sort((a, b) => a.date.localeCompare(b.date))) {
+    const x = xOf(Date.parse(event.date + 'T00:00:00Z'));
+    const textWidth = event.label.length * 6 + 10;
+    const flip = x + textWidth > width;
+    const lane = lanes.findIndex(end => (flip ? x - textWidth : x) >= end);
+    svg.append(svgEl('line', { x1: x, x2: x, y1: lane >= 0 ? 10 + lane * 13 + 4 : margin.top, y2: height - margin.bottom, stroke: event.type === 'model' ? css('--muted') : css('--ink-2'), 'stroke-opacity': event.type === 'model' ? .45 : .8 }));
+    svg.append(svgEl(event.type === 'model' ? 'circle' : 'rect', event.type === 'model'
+      ? { cx: x, cy: height - margin.bottom, r: 3, fill: css('--muted'), stroke: css('--surface'), 'stroke-width': 2 }
+      : { x: x - 3, y: height - margin.bottom - 3, width: 6, height: 6, fill: css('--ink-2'), stroke: css('--surface'), 'stroke-width': 2 }));
+    if (lane >= 0) {
+      lanes[lane] = flip ? x + 3 : x + textWidth;
+      const label = svgEl('text', { x: flip ? x - 3 : x + 3, y: 10 + lane * 13, class: 'event', 'text-anchor': flip ? 'end' : 'start' });
+      label.textContent = event.label;
+      svg.append(label);
+    }
+  }
+  const cross = svgEl('line', { y1: margin.top, y2: height - margin.bottom, stroke: css('--ink-2'), visibility: 'hidden' });
+  svg.append(cross);
+  host.append(svg);
+  const tip = makeTip(host);
+  const showAt = (i, y) => {
+    const x = xOf(TIMES[i]);
+    cross.setAttribute('x1', x);
+    cross.setAttribute('x2', x);
+    cross.setAttribute('visibility', 'visible');
+    tip.replaceChildren(el('div', { class: 'date', text: longDate(TIMES[i]) }));
+    for (const entry of [...visible].reverse()) {
+      if (!entry.values[i]) continue;
+      tip.append(tipRow(entry.color, asShare ? percent(valueOf(entry, i)) : compact(entry.values[i]), entry.label));
+    }
+    if (!asShare) tip.append(el('div', { class: 'row total' }, el('span'), el('span', { class: 'num', text: compact(stackTotals[i]) }), el('span', { class: 'name', text: 'Total' })));
+    const near = DATA.events.filter(e => { const t = Date.parse(e.date + 'T00:00:00Z'); return eventVisible(e) && t <= TIMES[i] && (!i || t > TIMES[i - 1]); });
+    if (state.events && near.length) tip.append(el('div', { class: 'note', text: near.map(e => e.label).join(', ') }));
+    placeTip(tip, host, x, y);
+  };
+  let current = LAST;
+  const nearest = clientX => {
+    const box = svg.getBoundingClientRect();
+    const time = from + ((clientX - box.left) * (width / box.width) - margin.left) / plotW * (to - from);
+    let best = start;
+    for (let i = start; i <= LAST; i++) if (Math.abs(TIMES[i] - time) < Math.abs(TIMES[best] - time)) best = i;
+    return best;
+  };
+  svg.addEventListener('pointermove', event => {
+    current = nearest(event.clientX);
+    const box = svg.getBoundingClientRect();
+    showAt(current, event.clientY - box.top - 20);
+  });
+  svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
+  svg.addEventListener('focus', () => showAt(current, margin.top));
+  svg.addEventListener('blur', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
+  svg.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    current = Math.min(LAST, Math.max(start, current + (event.key === 'ArrowLeft' ? -1 : 1)));
+    showAt(current, margin.top);
+  });
+  for (const entry of [...all].reverse()) {
+    legend.append(el('button', {
+      class: state.isolate && state.isolate !== entry.key ? 'off' : '',
+      'aria-pressed': String(state.isolate === entry.key),
+      onclick: () => { state.isolate = state.isolate === entry.key ? null : entry.key; render(); },
+    }, el('span', { class: 'swatch', style: `background:${entry.color}` }), el('span', { text: entry.label }), el('span', { class: 'val', text: compact(entry.values[LAST]) })));
+  }
+  renderMainTable(all, start);
+  return { start, end: LAST, totalAt };
+};
+
+const renderMainTable = (entries, start) => {
+  const quarters = [];
+  for (let i = start; i <= LAST; i++) {
+    const date = new Date(TIMES[i]);
+    if (i === LAST || (date.getUTCMonth() % 3 === 0 && date.getUTCDate() <= 7)) quarters.push(i);
+  }
+  const shown = quarters.slice(-12);
+  const table = el('table');
+  table.append(el('thead', {}, el('tr', {}, el('th', { text: 'Series', class: 'text' }), ...shown.map(i => el('th', { text: longDate(TIMES[i]) })))));
+  const body = el('tbody');
+  for (const entry of [...entries].reverse()) {
+    body.append(el('tr', {}, el('td', { text: entry.label }), ...shown.map(i => el('td', { text: integer.format(entry.values[i]) }))));
+  }
+  table.append(body);
+  document.getElementById('mainTable').replaceChildren(table);
+};
+
+const activityRows = () => DATA.activity.filter(row => repoAllowed(row[0]) && personAllowed(row[1]));
+const commitRows = () => DATA.commits.filter(row => repoAllowed(row[0]) && personAllowed(row[1]) && (row[3] & kindMask()));
+
+const renderActivity = start => {
+  const host = document.getElementById('activity');
+  const legend = document.getElementById('activityLegend');
+  host.replaceChildren();
+  legend.replaceChildren();
+  const startMonth = DATA.dates[start].slice(0, 7);
+  const months = DATA.months.filter(month => month >= startMonth);
+  const monthIndex = new Map(months.map((month, i) => [month, i]));
+  const dim = state.dim === 'repo' ? 'repo' : 'person';
+  const metric = state.metric;
+  document.getElementById('activitySub').textContent = `${metric === 'added' ? 'Lines added' : metric === 'deleted' ? 'Lines deleted' : 'Commits'} per month and per ${dim === 'repo' ? 'repository' : 'person'}, including code replaced since.`;
+  const groups = new Map();
+  const put = (row, value) => {
+    const month = DATA.months[row[2]];
+    if (!monthIndex.has(month) || !value) return;
+    const key = dim === 'repo' ? DATA.repos[row[0]].name : DATA.people[row[1]].name;
+    if (!groups.has(key)) groups.set(key, new Array(months.length).fill(0));
+    groups.get(key)[monthIndex.get(month)] += value;
+  };
+  if (metric === 'commits') for (const row of commitRows()) put(row, row[4]);
+  else for (const row of activityRows()) if (state.kinds.has(row[3])) put(row, metric === 'added' ? row[4] : row[5]);
+  const entries = [...groups.entries()].map(([key, values]) => ({ key, values, score: values.reduce((a, b) => a + b, 0) }));
+  const visible = buildVisible(entries, dim);
+  if (!visible.length || !months.length) {
+    host.append(el('div', { class: 'empty', text: 'No activity matches this filter.' }));
+    return;
+  }
+  const width = Math.max(host.clientWidth, 280);
+  const height = 300;
+  const margin = { top: 10, right: 8, bottom: 26, left: 50 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const totals = months.map((_, i) => visible.reduce((sum, entry) => sum + entry.values[i], 0));
+  const step = niceStep(Math.max(...totals));
+  const top = Math.ceil(Math.max(...totals) / step) * step || step;
+  const yOf = value => margin.top + plotH - value / top * plotH;
+  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Monthly activity' });
+  for (let value = 0; value <= top + 1e-9; value += step) {
+    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
+    const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
+    label.textContent = compact(value);
+    svg.append(label);
+  }
+  const slot = plotW / months.length;
+  const barWidth = Math.max(1.5, Math.min(24, slot * 0.72));
+  const every = Math.max(1, Math.ceil(70 / slot));
+  months.forEach((month, i) => {
+    const x = margin.left + i * slot + (slot - barWidth) / 2;
+    let base = 0;
+    const topEntry = visible.filter(entry => entry.values[i]).pop();
+    for (const entry of visible) {
+      const value = entry.values[i];
+      if (!value) continue;
+      const y0 = yOf(base);
+      const y1 = yOf(base + value);
+      base += value;
+      const gap = barWidth >= 4 ? 1 : 0;
+      const barHeight = Math.max(0.5, y0 - y1 - gap);
+      const radius = entry === topEntry ? Math.min(4, barWidth / 2, barHeight) : 0;
+      const yTop = y1 + gap;
+      svg.append(svgEl('path', { fill: entry.color, d: `M${x},${yTop + barHeight}V${yTop + radius}Q${x},${yTop} ${x + radius},${yTop}H${x + barWidth - radius}Q${x + barWidth},${yTop} ${x + barWidth},${yTop + radius}V${yTop + barHeight}Z` }));
+    }
+    if (i % every === 0) {
+      const label = svgEl('text', { x: x + barWidth / 2, y: height - 8, 'text-anchor': 'middle' });
+      label.textContent = monthLabel(Date.parse(month + '-01T00:00:00Z'));
+      svg.append(label);
+    }
+  });
+  host.append(svg);
+  const tip = makeTip(host);
+  svg.addEventListener('pointermove', event => {
+    const box = svg.getBoundingClientRect();
+    const index = Math.floor(((event.clientX - box.left) * (width / box.width) - margin.left) / slot);
+    if (index < 0 || index >= months.length) { tip.style.display = 'none'; return; }
+    tip.replaceChildren(el('div', { class: 'date', text: monthLabel(Date.parse(months[index] + '-01T00:00:00Z')) }));
+    for (const entry of [...visible].reverse()) if (entry.values[index]) tip.append(tipRow(entry.color, compact(entry.values[index]), entry.label));
+    tip.append(el('div', { class: 'row total' }, el('span'), el('span', { class: 'num', text: compact(totals[index]) }), el('span', { class: 'name', text: 'Total' })));
+    placeTip(tip, host, (event.clientX - box.left), event.clientY - box.top - 20);
+  });
+  svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
+  for (const entry of [...visible].reverse()) {
+    legend.append(el('span', { style: 'display:inline-flex;gap:6px;align-items:center;font-size:13px' }, el('span', { class: 'swatch', style: `background:${entry.color}` }), el('span', { text: entry.label }), el('span', { class: 'val', text: compact(entry.score) })));
+  }
+};
+
+const quarterEnd = cohort => {
+  const year = Number(cohort.slice(0, 4));
+  const quarter = Number(cohort.slice(5));
+  return Date.UTC(year, quarter * 3, 1);
+};
+
+const survivalCurves = () => {
+  const quarters = collect('quarter');
+  const years = new Map();
+  for (const [cohort, values] of quarters) {
+    const startIndex = TIMES.findIndex(time => time >= quarterEnd(cohort));
+    if (startIndex < 0) continue;
+    const year = cohort.slice(0, 4);
+    if (!years.has(year)) years.set(year, []);
+    years.get(year).push(values.slice(startIndex));
+  }
+  const curves = [];
+  for (const [year, list] of [...years.entries()].sort()) {
+    const longest = Math.max(...list.map(values => values.length));
+    if (Math.max(...list.map(values => Math.max(...values))) < 200) continue;
+    const points = [100];
+    let survival = 1;
+    for (let age = 1; age < longest; age++) {
+      let before = 0;
+      let after = 0;
+      for (const values of list) {
+        if (age < values.length && values[age - 1] > 0) {
+          before += values[age - 1];
+          after += Math.min(values[age], values[age - 1]);
+        }
+      }
+      if (before > 0) survival *= after / before;
+      points.push(survival * 100);
+    }
+    curves.push({ year, points });
+  }
+  return curves;
+};
+
+const renderSurvival = () => {
+  const host = document.getElementById('survival');
+  const legend = document.getElementById('survivalLegend');
+  host.replaceChildren();
+  legend.replaceChildren();
+  const curves = survivalCurves().slice(-10);
+  if (!curves.length) {
+    host.append(el('div', { class: 'empty', text: 'Not enough lines to estimate survival.' }));
+    return;
+  }
+  const steps = ramp();
+  curves.forEach((curve, index) => { curve.color = steps[Math.round((curves.length > 1 ? index / (curves.length - 1) : 1) * (steps.length - 1))]; });
+  const width = Math.max(host.clientWidth, 280);
+  const height = 300;
+  const margin = { top: 10, right: 12, bottom: 26, left: 44 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const maxAge = Math.max(...curves.map(curve => curve.points.length - 1));
+  const xOf = age => margin.left + (maxAge ? age / maxAge : 0) * plotW;
+  const yOf = value => margin.top + plotH - value / 100 * plotH;
+  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Code survival per year' });
+  for (const value of [0, 25, 50, 75, 100]) {
+    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
+    const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
+    label.textContent = `${value} %`;
+    svg.append(label);
+  }
+  const yearWeeks = 365.25 / 7 / DATA.manifest.interval_weeks;
+  const years = maxAge / yearWeeks;
+  const tickEvery = years > 10 ? yearWeeks * 2 : years > 2 ? yearWeeks : yearWeeks / 4;
+  for (let age = 0; age <= maxAge; age += tickEvery) {
+    const label = svgEl('text', { x: xOf(age), y: height - 8, 'text-anchor': 'middle' });
+    label.textContent = tickEvery >= yearWeeks ? `${Math.round(age / yearWeeks)} y` : `${Math.round(age / yearWeeks * 12)} mo`;
+    svg.append(label);
+  }
+  for (const curve of curves) {
+    svg.append(svgEl('path', { d: `M${curve.points.map((value, age) => `${xOf(age).toFixed(1)},${yOf(value).toFixed(1)}`).join('L')}`, fill: 'none', stroke: curve.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
+    legend.append(el('span', { style: 'display:inline-flex;gap:6px;align-items:center;font-size:13px' }, el('span', { class: 'swatch', style: `background:${curve.color}` }), el('span', { text: curve.year }), el('span', { class: 'val', text: percent(curve.points[curve.points.length - 1]) })));
+  }
+  const cross = svgEl('line', { y1: margin.top, y2: height - margin.bottom, stroke: css('--ink-2'), visibility: 'hidden' });
+  svg.append(cross);
+  host.append(svg);
+  const tip = makeTip(host);
+  svg.addEventListener('pointermove', event => {
+    const box = svg.getBoundingClientRect();
+    const age = Math.round(((event.clientX - box.left) * (width / box.width) - margin.left) / plotW * maxAge);
+    if (age < 0 || age > maxAge) { tip.style.display = 'none'; return; }
+    cross.setAttribute('x1', xOf(age));
+    cross.setAttribute('x2', xOf(age));
+    cross.setAttribute('visibility', 'visible');
+    tip.replaceChildren(el('div', { class: 'date', text: `After ${(age / yearWeeks * 12).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} months` }));
+    for (const curve of [...curves].reverse()) if (age < curve.points.length) tip.append(tipRow(curve.color, percent(curve.points[age]), curve.year));
+    placeTip(tip, host, event.clientX - box.left, event.clientY - box.top - 20);
+  });
+  svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
+};
+
+const peopleStats = start => {
+  const stats = new Map();
+  const entry = name => {
+    if (!stats.has(name)) stats.set(name, { name, lines: 0, delta: 0, commits: 0, periodCommits: 0, added: 0, deleted: 0, first: null, last: null, repos: new Map() });
+    return stats.get(name);
+  };
+  for (const row of DATA.series) {
+    if (!repoAllowed(row[0]) || !kindAllowed(row[3]) || !state.types.has(DATA.people[row[1]].type)) continue;
+    const points = row[5];
+    let atStart = 0;
+    for (let i = 0; i < points.length && points[i] <= start; i += 2) atStart = points[i + 1];
+    const atEnd = points[points.length - 1];
+    if (!atEnd && !atStart) continue;
+    const stat = entry(DATA.people[row[1]].name);
+    stat.lines += atEnd;
+    stat.delta += atEnd - atStart;
+    const repo = DATA.repos[row[0]].name;
+    stat.repos.set(repo, (stat.repos.get(repo) || 0) + atEnd);
+  }
+  const startMonth = DATA.dates[start].slice(0, 7);
+  const mask = kindMask();
+  for (const row of DATA.commits) {
+    if (!repoAllowed(row[0]) || !(row[3] & mask) || !state.types.has(DATA.people[row[1]].type)) continue;
+    const stat = entry(DATA.people[row[1]].name);
+    const month = DATA.months[row[2]];
+    stat.commits += row[4];
+    if (month >= startMonth) stat.periodCommits += row[4];
+    if (!stat.first || month < stat.first) stat.first = month;
+    if (!stat.last || month > stat.last) stat.last = month;
+  }
+  for (const row of DATA.activity) {
+    if (!repoAllowed(row[0]) || !state.kinds.has(row[3]) || !state.types.has(DATA.people[row[1]].type)) continue;
+    const stat = entry(DATA.people[row[1]].name);
+    stat.added += row[4];
+    stat.deleted += row[5];
+  }
+  return [...stats.values()];
+};
+
+const renderPeople = start => {
+  const rows = peopleStats(start);
+  const totalLines = rows.reduce((sum, row) => sum + row.lines, 0);
+  const columns = [
+    ['name', 'Person', row => row.name],
+    ['lines', 'Lines', row => row.lines],
+    ['share', 'Share', row => totalLines ? row.lines / totalLines : 0],
+    ['delta', 'Change', row => row.delta],
+    ['periodCommits', 'Commits', row => row.periodCommits],
+    ['commits', 'Commits (total)', row => row.commits],
+    ['added', 'Added', row => row.added],
+    ['deleted', 'Deleted', row => row.deleted],
+    ['retention', 'Retention', row => row.added >= 200 ? row.lines / row.added : -1],
+    ['first', 'First', row => row.first || ''],
+    ['last', 'Last', row => row.last || ''],
+  ];
+  const column = columns.find(c => c[0] === state.sort) || columns[1];
+  rows.sort((a, b) => {
+    const x = column[2](a);
+    const y = column[2](b);
+    return (x > y ? 1 : x < y ? -1 : a.name.localeCompare(b.name)) * state.sortDir;
+  });
+  const table = el('table');
+  table.append(el('thead', {}, el('tr', {}, ...columns.map(([key, label]) => el('th', {
+    tabindex: 0,
+    text: label + (state.sort === key ? (state.sortDir < 0 ? ' ↓' : ' ↑') : ''),
+    onclick: () => { state.sortDir = state.sort === key ? -state.sortDir : -1; state.sort = key; render(); },
+    onkeydown: event => { if (event.key === 'Enter') { state.sortDir = state.sort === key ? -state.sortDir : -1; state.sort = key; render(); } },
+  })), el('th', { class: 'text', text: 'Main repositories' }))));
+  const body = el('tbody');
+  for (const row of rows) {
+    const person = DATA.people.find(p => p.name === row.name);
+    const tag = TYPE_TAG[person.type];
+    const toggle = () => { state.person = state.person === row.name ? ALL : row.name; state.isolate = null; render(); };
+    const repos = [...row.repos.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => `${e[0]} ${compact(e[1])}`).join(' · ');
+    body.append(el('tr', { class: state.person === row.name ? 'selected' : '', tabindex: 0, onclick: toggle, onkeydown: event => { if (event.key === 'Enter') toggle(); } },
+      el('td', {}, document.createTextNode(row.name), ...(tag ? [el('span', { class: 'tag', text: tag })] : [])),
+      el('td', { text: integer.format(row.lines) }),
+      el('td', { text: percent(totalLines ? row.lines / totalLines * 100 : 0) }),
+      el('td', { text: signed(row.delta) }),
+      el('td', { text: integer.format(row.periodCommits) }),
+      el('td', { text: integer.format(row.commits) }),
+      el('td', { text: compact(row.added) }),
+      el('td', { text: compact(row.deleted) }),
+      el('td', { text: row.added >= 200 ? percent(row.lines / row.added * 100) : '–' }),
+      el('td', { text: row.first || '–' }),
+      el('td', { text: row.last || '–' }),
+      el('td', { class: 'text', text: repos }),
+    ));
+  }
+  table.append(body);
+  document.getElementById('people').replaceChildren(table);
+};
+
+const renderKpis = (range) => {
+  const total = range.totalAt(LAST);
+  const before = range.totalAt(range.start);
+  const startMonth = DATA.dates[range.start].slice(0, 7);
+  let commits = 0;
+  const humans = new Set();
+  for (const row of commitRows()) {
+    if (DATA.months[row[2]] < startMonth) continue;
+    commits += row[4];
+    if (DATA.people[row[1]].type === 'human') humans.add(row[1]);
+  }
+  const tile = (label, value, delta, hero) => el('div', { class: hero ? 'kpi hero' : 'kpi' }, el('div', { class: 'value', text: value }), el('div', { class: 'label', text: label }), ...(delta ? [el('div', { class: 'delta', text: delta })] : []));
+  document.getElementById('kpis').replaceChildren(
+    tile('surviving lines', compact(total), `${signed(total - before)} over the period`, true),
+    tile('commits over the period', integer.format(commits)),
+    tile('active developers', integer.format(humans.size)),
+  );
+};
+
+const renderHeader = range => {
+  const repo = state.repo !== ALL ? state.repo : state.scope === ALL ? DATA.title : state.scope;
+  const person = state.person !== ALL ? ` · ${state.person}` : '';
+  document.getElementById('title').textContent = `${repo} · Code ownership${person}`;
+  const dimLabel = { person: 'developer', cohort: 'year written', language: 'language', repo: 'repository' }[state.dim];
+  document.getElementById('subtitle').textContent = `Surviving lines per ${dimLabel} · ${longDate(TIMES[range.start])} – ${longDate(TIMES[LAST])}`;
+};
+
+const segmented = (id, options, isOn, onPick) => {
+  const host = document.getElementById(id);
+  host.replaceChildren(...options.map(([key, label]) => el('button', { 'aria-pressed': String(isOn(key)), text: label, onclick: () => onPick(key) })));
+};
+const selectBox = (id, options, value, onPick) => {
+  const host = document.getElementById(id);
+  host.replaceChildren(...options.map(([key, label]) => el('option', { value: key, text: label })));
+  host.value = value;
+  host.onchange = () => onPick(host.value);
+};
+
+const renderControls = () => {
+  selectBox('period', [['all', 'All history'], ...(HAS_MODELS ? [['claude4', 'Since Claude 4']] : []), ['36', '36 months'], ['24', '24 months'], ['12', '12 months'], ['6', '6 months'], ['3', '3 months']], state.period, value => { state.period = value; render(); });
+  segmented('scope', [[ALL, 'All'], ...GROUPS.map(group => [group, group])], key => state.scope === key, key => { state.scope = key; state.repo = ALL; state.isolate = null; render(); });
+  const repos = DATA.repos.filter(r => state.scope === ALL || r.group === state.scope).map(r => [r.name, r.name]);
+  selectBox('repo', [[ALL, 'All'], ...repos], state.repo, value => { state.repo = value; state.isolate = null; render(); });
+  const totals = new Map();
+  for (const row of DATA.series) {
+    if (!repoAllowed(row[0]) || !kindAllowed(row[3])) continue;
+    totals.set(row[1], (totals.get(row[1]) || 0) + row[5][row[5].length - 1]);
+  }
+  const people = [...totals.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).map(e => [DATA.people[e[0]].name, DATA.people[e[0]].name]);
+  if (state.person !== ALL && !people.some(p => p[0] === state.person)) people.unshift([state.person, state.person]);
+  selectBox('person', [[ALL, 'Everyone'], ...people], state.person, value => { state.person = value; state.isolate = null; render(); });
+  segmented('dim', DIMS, key => state.dim === key, key => { state.dim = key; state.isolate = null; render(); });
+  segmented('unit', [['lines', 'Lines'], ['share', 'Share']], key => state.unit === key, key => { state.unit = key; render(); });
+  segmented('kinds', DATA.kinds.map(k => [k.key, k.label]), key => state.kinds.has(key), key => { state.kinds.has(key) ? state.kinds.delete(key) : state.kinds.add(key); render(); });
+  segmented('types', TYPES, key => state.types.has(key), key => { state.types.has(key) ? state.types.delete(key) : state.types.add(key); render(); });
+  segmented('metric', [['added', 'Added'], ['deleted', 'Deleted'], ['commits', 'Commits']], key => state.metric === key, key => { state.metric = key; render(); });
+  const theme = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.getElementById('toggles').replaceChildren(
+    el('button', { 'aria-pressed': String(state.events), text: 'Events', onclick: () => { state.events = !state.events; render(); } }),
+    el('button', { 'aria-pressed': 'false', text: theme === 'dark' ? 'Light theme' : 'Dark theme', onclick: () => { document.documentElement.dataset.theme = theme === 'dark' ? 'light' : 'dark'; render(); } }),
+  );
+};
+
+const renderMethod = () => {
+  const manifest = DATA.manifest;
+  const options = manifest.blame_options.join(' ');
+  const items = [
+    `Every ${manifest.interval_weeks === 1 ? 'week' : `${manifest.interval_weeks} weeks`}, one commit is taken from the default branch of each repository (first-parent history, Monday 00:00 UTC), and each file changed since the previous sample goes through git blame ${options}: a line belongs to the author of the commit that wrote it.`,
+    'The main chart counts what is still alive at each date, not what was written. Monthly activity counts everything written, including code replaced since.',
+    'Lockfiles, vendored, generated and binary files are not counted. Run `git-planks audit` to see what is, and adjust planks.toml.',
+    'Code arrives on the curve when it lands on the default branch: a long-lived branch or an imported history shows as a step.',
+    'A line that is reformatted or moved between files can change author, and a commit written with an AI stays under the name of whoever pushed it. These curves describe code, not the value of a person: reviews, architecture and removed complexity barely show.',
+    ...(HAS_MODELS ? ['Model release dates come from public sources and are shown as context only: they do not establish any cause.'] : []),
+    `Reproducible: the same commits, configuration and git version give this file byte for byte. Cut-off ${manifest.until}, git-planks ${manifest.tool_version}, ${manifest.git}. Check it with \`git-planks verify\`.`,
+    ...(manifest.skipped.length ? [`Skipped: ${manifest.skipped.join(', ')}.`] : []),
+  ];
+  const commits = Object.entries(manifest.commits).map(([name, sha]) => el('li', {}, document.createTextNode(`${name} `), el('code', { text: sha })));
+  document.getElementById('method').replaceChildren(el('ul', {}, ...items.map(text => el('li', { text }))), el('div', { text: 'Commits analyzed' }), el('ul', {}, ...commits));
+};
+
+const render = () => {
+  renderControls();
+  const range = renderMain();
+  renderHeader(range);
+  renderKpis(range);
+  renderActivity(range.start);
+  renderSurvival();
+  renderPeople(range.start);
+};
+
+renderMethod();
+render();
+let resizeFrame = 0;
+let lastWidth = document.getElementById('main').clientWidth;
+new ResizeObserver(() => {
+  const width = document.getElementById('main').clientWidth;
+  if (width === lastWidth) return;
+  lastWidth = width;
+  cancelAnimationFrame(resizeFrame);
+  resizeFrame = requestAnimationFrame(render);
+}).observe(document.getElementById('main'));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
+</script>
+</body>
+</html>

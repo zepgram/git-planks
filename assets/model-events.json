@@ -1,0 +1,18 @@
+[
+  { "date": "2025-05-22", "label": "Claude 4", "type": "model" },
+  { "date": "2025-08-05", "label": "Opus 4.1", "type": "model" },
+  { "date": "2025-09-29", "label": "Sonnet 4.5", "type": "model" },
+  { "date": "2025-10-15", "label": "Haiku 4.5", "type": "model" },
+  { "date": "2025-11-24", "label": "Opus 4.5", "type": "model" },
+  { "date": "2026-02-05", "label": "Opus 4.6", "type": "model" },
+  { "date": "2026-02-17", "label": "Sonnet 4.6", "type": "model" },
+  { "date": "2026-04-16", "label": "Opus 4.7", "type": "model" },
+  { "date": "2026-05-28", "label": "Opus 4.8", "type": "model" },
+  { "date": "2026-06-09", "label": "Fable 5", "type": "model" },
+  { "date": "2026-06-30", "label": "Sonnet 5", "type": "model" },
+  { "date": "2026-07-24", "label": "Opus 5", "type": "model" },
+  { "date": "2026-09-01", "label": "Fable 5.1", "type": "model" },
+  { "date": "2026-09-22", "label": "Opus 5.5", "type": "model" },
+  { "date": "2026-09-28", "label": "Sonnet 5.5", "type": "model" },
+  { "date": "2026-10-07", "label": "Haiku 5.5", "type": "model" }
+]
