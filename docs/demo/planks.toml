@@ -1,0 +1,22 @@
+# The live demo. Rebuild it with:
+#   git-planks analyze --config docs/demo/planks.toml --out planks-report
+title = "Redis"
+
+[[source]]
+from = "https://github.com/redis/redis.git"
+group = "server"
+
+[[source]]
+from = "https://github.com/redis/hiredis.git"
+group = "clients"
+
+[[source]]
+from = "https://github.com/redis/redis-py.git"
+group = "clients"
+
+[[source]]
+from = "https://github.com/redis/jedis.git"
+group = "clients"
+
+[repos.redis]
+exclude = ["deps/**", "src/commands.c", "src/commands.def", "src/commands/**"]

@@ -125,6 +125,13 @@ impl Repo {
     }
 }
 
+/// An absolute path as git reads it: Windows' canonical `\\?\C:\` form is refused.
+fn git_path(path: &Path) -> String {
+    let absolute = path.canonicalize().unwrap();
+    let text = absolute.to_string_lossy();
+    text.trim_start_matches(r"\\?\").replace('\\', "/")
+}
+
 const ADA: (&str, &str) = ("Ada Lovelace", "ada@acme.dev");
 const ALAN: (&str, &str) = ("Alan Turing", "alan@acme.dev");
 
@@ -403,12 +410,7 @@ fn repo_with_submodule(sandbox: &Sandbox, address: &str) {
     let parent = sandbox.repo("parent");
     parent.write("main.rs", 2, "parent");
     let address = if address.is_empty() {
-        child
-            .path
-            .canonicalize()
-            .unwrap()
-            .to_string_lossy()
-            .into_owned()
+        git_path(&child.path)
     } else {
         address.to_string()
     };
@@ -586,7 +588,12 @@ fn analyzes_a_checkout_with_a_detached_head() {
 fn refuses_a_shallow_clone_instead_of_misattributing_it() {
     let sandbox = Sandbox::new();
     let repo = two_author_repo(&sandbox);
-    let origin = format!("file://{}", repo.path.canonicalize().unwrap().display());
+    let path = git_path(&repo.path);
+    let origin = if path.starts_with('/') {
+        format!("file://{path}")
+    } else {
+        format!("file:///{path}")
+    };
     let done = Command::new("git")
         .args(["clone", "-q", "--depth", "1", &origin, "shallow"])
         .current_dir(&sandbox.root)

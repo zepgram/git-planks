@@ -3,180 +3,240 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Code ownership · git-planks</title>
+<meta name="color-scheme" content="light dark">
+<title>Code ownership - git-planks</title>
 <style>
 :root {
   color-scheme: light;
-  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
-  --grid: #e1e0d9; --axis: #c3c2b7; --ring: rgba(11,11,11,.10); --wash: rgba(11,11,11,.05);
-  --other: #a3a29c; --import: #c3c2b7; --accent: #2a78d6;
+  --page: #f4f6f5; --ink: #10202c; --ink-2: #44565f; --muted: #6a7a84;
+  --grid: #dde3e3; --axis: #b4c0c4; --wash: rgba(16,32,44,.06); --accent: #0b6e99;
+  --other: #a4b0b4; --import: #c9d1d3; --fill: .82;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
   --ramp: #86b6ef,#6da7ec,#5598e7,#3987e5,#2a78d6,#256abf,#1c5cab,#184f95,#104281,#0d366b;
-  --fill: .5;
 }
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme="light"])) {
     color-scheme: dark;
-    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
-    --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,.10); --wash: rgba(255,255,255,.06);
-    --other: #6b6a66; --import: #4d4c49; --accent: #3987e5;
-    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --page: #0e1a26; --ink: #edf2f4; --ink-2: #aebcc5; --muted: #80929e;
+    --grid: #1e3040; --axis: #304859; --wash: rgba(237,242,244,.07); --accent: #6cc4ea;
+    --other: #5a6d7b; --import: #41535f; --fill: .86;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #2c9a2c; --s7: #9085e9; --s8: #e66767;
     --ramp: #184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6;
-    --fill: .62;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
-  --grid: #2c2c2a; --axis: #383835; --ring: rgba(255,255,255,.10); --wash: rgba(255,255,255,.06);
-  --other: #6b6a66; --import: #4d4c49; --accent: #3987e5;
-  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --page: #0e1a26; --ink: #edf2f4; --ink-2: #aebcc5; --muted: #80929e;
+  --grid: #1e3040; --axis: #304859; --wash: rgba(237,242,244,.07); --accent: #6cc4ea;
+  --other: #5a6d7b; --import: #41535f; --fill: .86;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #2c9a2c; --s7: #9085e9; --s8: #e66767;
   --ramp: #184f95,#1c5cab,#256abf,#2a78d6,#3987e5,#5598e7,#6da7ec,#86b6ef,#9ec5f4,#b7d3f6;
-  --fill: .62;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1320px; margin: 0 auto; padding: 24px 24px 64px; display: grid; gap: 16px; }
-h1 { margin: 0; font-size: 26px; font-weight: 650; letter-spacing: -.01em; }
-h2 { margin: 0; font-size: 16px; font-weight: 600; }
-.sub { color: var(--ink-2); margin-top: 4px; }
-.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; }
-.kpis { display: flex; flex-wrap: wrap; gap: 8px 32px; align-items: flex-end; }
-.kpi .label { color: var(--ink-2); font-size: 12px; }
-.kpi .value { font-size: 26px; font-weight: 600; line-height: 1.15; }
-.kpi.hero .value { font-size: 48px; letter-spacing: -.02em; line-height: 1; }
-.kpi .delta { color: var(--ink-2); font-size: 12px; }
-.filters { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; position: sticky; top: 0; z-index: 5; padding: 10px 0; background: var(--page); }
-.field { display: flex; align-items: center; gap: 6px; color: var(--ink-2); font-size: 12px; }
-.seg { display: inline-flex; border: 1px solid var(--ring); border-radius: 8px; overflow: hidden; background: var(--surface); }
-.seg button { border: 0; background: none; color: var(--ink-2); padding: 5px 10px; font: inherit; font-size: 13px; cursor: pointer; }
-.seg button:hover { background: var(--wash); }
-.seg button[aria-pressed="true"] { background: var(--wash); color: var(--ink); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
-select { background: var(--surface); color: var(--ink); border: 1px solid var(--ring); border-radius: 8px; padding: 5px 8px; font: inherit; font-size: 13px; max-width: 220px; }
-button:focus-visible, select:focus-visible, svg:focus-visible, th:focus-visible, tr:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.card { background: var(--surface); border: 1px solid var(--ring); border-radius: 14px; padding: 18px 20px; display: grid; gap: 12px; min-width: 0; }
-.card header { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 8px; }
-.card header p { margin: 2px 0 0; color: var(--ink-2); font-size: 13px; }
-.chart { position: relative; width: 100%; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 15px/1.5 "Avenir Next", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; }
+main { max-width: 1400px; margin: 0 auto; padding: 20px clamp(16px, 3vw, 44px) 72px; }
+button, select, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 16px; color: var(--ink-2); }
+.brand { font-weight: 600; }
+.quiet { background: none; border: 0; color: var(--ink-2); padding: 4px 8px; border-radius: 6px; }
+.quiet:hover { background: var(--wash); color: var(--ink); }
+.actions { display: flex; gap: 2px; }
+h1 { font: 500 clamp(26px, 3.3vw, 46px)/1.14 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; letter-spacing: -.012em; margin: 26px 0 0; max-width: 24em; text-wrap: balance; font-variant-numeric: lining-nums; }
+h2 { font: 500 25px/1.2 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; margin: 0; }
+.query { margin: 20px 0 0; font-size: 17px; color: var(--ink-2); line-height: 2.05; max-width: 60em; }
+.query select { appearance: none; -webkit-appearance: none; background: none; border: 0; border-bottom: 2px solid var(--axis); border-radius: 0; color: var(--ink); font-weight: 600; padding: 0 16px 0 1px; cursor: pointer; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-size: 4px 4px; background-position: right 7px center, right 3px center; background-repeat: no-repeat; max-width: 15em; }
+.query select:hover { border-bottom-color: var(--accent); }
+.query select option, .query select optgroup { color: #10202c; background: #fff; }
+.refine { margin-left: 4px; font-size: 15px; }
+.refine button { background: none; border: 0; padding: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.options { display: flex; flex-wrap: wrap; gap: 8px 32px; margin-top: 8px; font-size: 14px; color: var(--ink-2); }
+.options[hidden] { display: none; }
+.options fieldset { border: 0; padding: 0; margin: 0; display: flex; flex-wrap: wrap; gap: 2px 12px; align-items: center; }
+.options legend { float: left; margin-right: 10px; color: var(--muted); padding: 0; }
+.options label { display: inline-flex; gap: 5px; align-items: center; cursor: pointer; }
+.options input { accent-color: var(--accent); margin: 0; }
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 312px; gap: 28px; margin-top: 18px; align-items: start; }
+.chart { position: relative; min-width: 0; touch-action: pan-y; }
 svg { display: block; width: 100%; height: auto; overflow: visible; }
-svg text { font: 12px system-ui, -apple-system, "Segoe UI", sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
+svg text { font: 12px "Avenir Next", "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif; fill: var(--muted); font-variant-numeric: tabular-nums; }
 svg text.event { fill: var(--ink-2); font-size: 11px; font-variant-numeric: normal; }
-.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.legend button { display: inline-flex; gap: 6px; align-items: center; background: none; border: 0; padding: 3px 4px; border-radius: 6px; color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
-.legend button:hover { background: var(--wash); }
-.legend button.off { opacity: .4; }
-.legend .swatch { width: 10px; height: 10px; border-radius: 3px; flex: none; }
-.legend .val { color: var(--ink-2); font-variant-numeric: tabular-nums; }
-.tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--ring); border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.25); padding: 8px 10px; min-width: 190px; font-size: 12px; z-index: 4; display: none; }
-.tip .date { color: var(--ink-2); margin-bottom: 4px; }
-.tip .row { display: grid; grid-template-columns: 14px auto 1fr; gap: 6px; align-items: center; }
+.bands path { transition: fill-opacity .14s; }
+.rail-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-height: 28px; }
+.rail-date { font-weight: 600; font-variant-numeric: tabular-nums; }
+.play { background: var(--ink); color: var(--page); border: 0; border-radius: 16px; padding: 5px 14px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+.play:hover { opacity: .85; }
+.rail-note { color: var(--ink-2); font-size: 13px; min-height: 20px; }
+.rank { position: relative; margin-top: 6px; }
+.row { position: absolute; left: 0; right: 0; height: 44px; display: grid; grid-template-columns: 1fr auto; column-gap: 8px; align-content: center; border: 0; background: none; text-align: left; padding: 0 6px; border-radius: 6px; transition: transform .28s ease, opacity .14s; }
+.row:hover, .row.on { background: var(--wash); }
+.row.off { opacity: .42; }
+.row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 14px; }
+.row .value { font-weight: 600; font-variant-numeric: tabular-nums; font-size: 14px; }
+.row .meter { grid-column: 1 / -1; height: 5px; margin-top: 3px; }
+.row .meter span { display: block; height: 100%; border-radius: 3px; min-width: 2px; }
+.hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+section { margin-top: 60px; }
+.lede { color: var(--ink-2); margin: 6px 0 0; max-width: 62ch; }
+.findings { list-style: none; padding: 0; margin: 20px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 6px 36px; }
+.findings button { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--grid); padding: 12px 0 14px; }
+.findings button:hover .say { color: var(--accent); }
+.say { font: 400 19px/1.32 "Iowan Old Style", "Palatino Linotype", Palatino, "Charter", Georgia, serif; font-variant-numeric: lining-nums; }
+.why { display: block; color: var(--muted); font-size: 13px; margin-top: 4px; }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); gap: 44px; }
+.pair > div { min-width: 0; }
+.panel-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+.choice { display: inline-flex; gap: 2px; }
+.choice button { background: none; border: 0; padding: 3px 9px; border-radius: 6px; color: var(--ink-2); font-size: 14px; }
+.choice button:hover { background: var(--wash); }
+.choice button[aria-pressed="true"] { background: var(--wash); color: var(--ink); font-weight: 600; }
+.pair .chart { margin-top: 12px; }
+.legend { display: flex; flex-wrap: wrap; gap: 3px 14px; margin-top: 10px; font-size: 13px; color: var(--ink-2); }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.legend b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.swatch { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.tip { position: absolute; pointer-events: none; background: var(--page); border: 1px solid var(--axis); border-radius: 8px; padding: 7px 10px; font-size: 13px; z-index: 4; display: none; min-width: 170px; box-shadow: 0 8px 26px rgba(0,0,0,.2); }
+.tip .date { color: var(--ink-2); margin-bottom: 3px; }
+.tip .line { display: grid; grid-template-columns: 12px auto 1fr; gap: 6px; align-items: center; }
 .tip .key { height: 2px; border-radius: 1px; }
-.tip .num { font-weight: 650; font-variant-numeric: tabular-nums; text-align: right; }
-.tip .name { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 190px; }
-.tip .total { border-top: 1px solid var(--grid); margin-top: 4px; padding-top: 4px; }
-.tip .note { color: var(--ink-2); margin-top: 4px; border-top: 1px solid var(--grid); padding-top: 4px; }
-.pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-@media (max-width: 980px) { .pair { grid-template-columns: minmax(0, 1fr); } }
-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-th { text-align: right; color: var(--ink-2); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--axis); cursor: pointer; white-space: nowrap; user-select: none; }
-th:first-child, td:first-child { text-align: left; }
-td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
-td.text { text-align: left; color: var(--ink-2); white-space: normal; min-width: 280px; }
-th.text { text-align: left; cursor: default; }
+.tip .num { font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
+.tip .who { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+.table-tools { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+.search { background: none; border: 0; border-bottom: 2px solid var(--axis); padding: 3px 1px; width: 240px; max-width: 100%; }
+.search::placeholder { color: var(--muted); }
+.search:focus { outline: none; border-bottom-color: var(--accent); }
+.scroll { overflow-x: auto; margin-top: 6px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: right; color: var(--ink-2); font-weight: 500; padding: 7px 10px; border-bottom: 1px solid var(--axis); white-space: nowrap; }
+th button { background: none; border: 0; padding: 0; font-weight: inherit; color: inherit; }
+th:first-child, td:first-child, th.text, td.text { text-align: left; }
+td { text-align: right; padding: 6px 10px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.text { color: var(--ink-2); white-space: normal; min-width: 240px; }
 tbody tr { cursor: pointer; }
-tbody tr:hover { background: var(--wash); }
-tr.selected { background: var(--wash); box-shadow: inset 2px 0 0 var(--accent); }
-.tag { color: var(--muted); font-size: 11px; margin-left: 6px; }
-.scroll { overflow-x: auto; }
+tbody tr:hover, tr.selected { background: var(--wash); }
+td .person { display: flex; gap: 10px; align-items: center; }
+td .spark { width: 72px; height: 20px; flex: none; }
+.tag { color: var(--muted); font-size: 12px; margin-left: 5px; }
+.more { background: none; border: 0; color: var(--accent); text-decoration: underline; text-underline-offset: 3px; padding: 10px 0; }
 details summary { cursor: pointer; color: var(--ink-2); }
-.method { display: grid; gap: 8px; color: var(--ink-2); font-size: 13px; }
-.method ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
-.method code { font-size: 12px; color: var(--ink); word-break: break-all; }
-.empty { padding: 48px; text-align: center; color: var(--ink-2); }
+.method { color: var(--ink-2); max-width: 74ch; }
+.method ul { padding-left: 18px; display: grid; gap: 6px; margin: 10px 0; }
+.method code { font-size: 12px; word-break: break-all; color: var(--ink); }
+.empty { padding: 72px 20px; text-align: center; color: var(--ink-2); }
+footer { margin-top: 56px; color: var(--muted); font-size: 13px; }
+footer a { color: inherit; }
+@media (max-width: 960px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .pair { grid-template-columns: minmax(0, 1fr); }
+  .findings { grid-template-columns: minmax(0, 1fr); }
+  .query { font-size: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .row, .bands path { transition: none; }
+}
+@media print { .actions, .play, .refine { display: none; } }
 </style>
 </head>
 <body>
 <main>
-  <section class="top">
-    <div>
-      <h1 id="title"></h1>
-      <div class="sub" id="subtitle"></div>
+  <div class="topbar">
+    <span class="brand" id="brand"></span>
+    <div class="actions">
+      <button class="quiet" id="share">Copy link</button>
+      <button class="quiet" id="save">Save image</button>
+      <button class="quiet" id="theme"></button>
     </div>
-    <div class="kpis" id="kpis"></div>
-  </section>
+  </div>
+  <h1 id="headline"></h1>
+  <div class="query" id="query"></div>
+  <div class="options" id="options" hidden></div>
 
-  <section class="filters" aria-label="Filters">
-    <div class="field">Period <select id="period"></select></div>
-    <div class="field">Scope <span class="seg" id="scope"></span></div>
-    <div class="field">Repository <select id="repo"></select></div>
-    <div class="field">Person <select id="person"></select></div>
-    <div class="field">View <span class="seg" id="dim"></span></div>
-    <div class="field">Unit <span class="seg" id="unit"></span></div>
-    <div class="field">Content <span class="seg" id="kinds"></span></div>
-    <div class="field">Authors <span class="seg" id="types"></span></div>
-    <div class="field"><span class="seg" id="toggles"></span></div>
-  </section>
-
-  <section class="card">
+  <div class="stage">
     <div class="chart" id="main"></div>
-    <div class="legend" id="legend"></div>
-    <details>
-      <summary>Show the chart data</summary>
-      <div class="scroll" id="mainTable"></div>
-    </details>
+    <aside>
+      <div class="rail-head">
+        <span class="rail-date" id="railDate"></span>
+        <button class="play" id="play"></button>
+      </div>
+      <div class="rail-note" id="railNote"></div>
+      <div class="rank" id="rank"></div>
+      <p class="hint" id="hint"></p>
+    </aside>
+  </div>
+
+  <section aria-labelledby="findingsTitle">
+    <h2 id="findingsTitle">What this history says</h2>
+    <ul class="findings" id="findings"></ul>
   </section>
 
   <section class="pair">
-    <div class="card">
-      <header>
-        <div><h2>Monthly activity</h2><p id="activitySub"></p></div>
-        <span class="seg" id="metric"></span>
-      </header>
+    <div>
+      <div class="panel-head">
+        <div><h2>Monthly activity</h2><p class="lede" id="activitySub"></p></div>
+        <span class="choice" id="metric"></span>
+      </div>
       <div class="chart" id="activity"></div>
       <div class="legend" id="activityLegend"></div>
     </div>
-    <div class="card">
-      <header>
-        <div><h2>Code survival</h2><p>Share of each year's lines still present as they age, for the ten most recent years of this scope.</p></div>
-      </header>
+    <div>
+      <h2>How long code lasts</h2>
+      <p class="lede">Share of each year's lines still present as they age, for the ten most recent years.</p>
       <div class="chart" id="survival"></div>
       <div class="legend" id="survivalLegend"></div>
     </div>
   </section>
 
-  <section class="card">
-    <header><div><h2>People</h2><p>Surviving lines at the end of the period; change and commits over the period. Retention: surviving lines divided by all lines ever added. Click a row to filter the report on that person.</p></div></header>
+  <section>
+    <h2>Everyone who wrote this code</h2>
+    <p class="lede">Lines are those still alive at the selected date. Retention divides them by all the lines the person ever added. Select a row to focus the page on that person.</p>
+    <div class="table-tools">
+      <input class="search" id="search" type="search" placeholder="Find a person" aria-label="Find a person">
+      <span id="peopleCount" class="hint"></span>
+    </div>
     <div class="scroll" id="people"></div>
+    <button class="more" id="more" hidden></button>
   </section>
 
-  <section class="card">
+  <section>
     <details>
-      <summary>Method and reproducibility</summary>
+      <summary>Chart data</summary>
+      <div class="scroll" id="mainTable"></div>
+    </details>
+    <details style="margin-top:12px">
+      <summary>How this was counted, and how to check it</summary>
       <div class="method" id="method"></div>
     </details>
   </section>
+  <footer>Made with <a href="https://github.com/zepgram/git-planks">git-planks</a>. Lines describe code, not the value of a person.</footer>
 </main>
 
 <script>
 const DATA = /*__DATA__*/null;
 const SVG = 'http://www.w3.org/2000/svg';
 const LOCALE = 'en-US';
-const TIMES = DATA.dates.map(d => Date.parse(d + 'T00:00:00Z'));
+const TIMES = DATA.dates.map(d => Date.parse(`${d}T00:00:00Z`));
 const LAST = DATA.dates.length - 1;
 const GROUPS = [...new Set(DATA.repos.map(r => r.group))].sort();
 const REPO_INDEX = new Map(DATA.repos.map((repo, index) => [repo.name, index]));
-const TYPES = [['human', 'Humans'], ['agent', 'Agents'], ['bot', 'Bots'], ['import', 'Imports']];
-const TYPE_TAG = { agent: 'agent', bot: 'bot', import: 'import' };
-const DIMS = [['person', 'Developers'], ['cohort', 'Cohorts'], ['language', 'Languages'], ['repo', 'Repositories']];
 const OTHER = '__other__';
 const ALL = '*all*';
 const HAS_MODELS = DATA.events.some(event => event.type === 'model');
+const YEAR = 365.25 * 86400000;
+const TYPES = [['human', 'People'], ['agent', 'Agents'], ['bot', 'Bots'], ['import', 'Imports']];
+const TYPE_TAG = { agent: 'agent', bot: 'bot', import: 'import' };
+const DIMS = [['person', 'developer'], ['cohort', 'year written'], ['language', 'language'], ['repo', 'repository']];
+const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const THEME_KEY = 'git-planks-theme';
 
-const state = {
-  period: 'all', scope: ALL, repo: ALL, person: ALL, dim: 'person', unit: 'lines', metric: 'added', isolate: null, sort: 'lines', sortDir: -1, events: true,
+const defaults = () => ({
+  period: 'all', scope: ALL, person: ALL, dim: 'person', unit: 'lines', metric: 'added', isolate: null, sort: 'lines', sortDir: -1, events: true,
   kinds: new Set(DATA.kinds.filter(k => k.default).map(k => k.key)),
   types: new Set(TYPES.map(t => t[0])),
-};
+  date: null, pinned: false, query: '', limit: 40, refine: false,
+});
+const state = defaults();
 
 const el = (tag, props = {}, ...children) => {
   const node = document.createElement(tag);
@@ -198,14 +258,16 @@ const css = name => getComputedStyle(document.documentElement).getPropertyValue(
 const integer = new Intl.NumberFormat(LOCALE, { maximumFractionDigits: 0 });
 const compact = value => {
   const size = Math.abs(value);
-  if (size >= 1e6) return (value / 1e6).toLocaleString(LOCALE, { maximumFractionDigits: 2 }) + ' M';
-  if (size >= 1e4) return (value / 1e3).toLocaleString(LOCALE, { maximumFractionDigits: 1 }) + ' k';
+  if (size >= 1e6) return `${(value / 1e6).toLocaleString(LOCALE, { maximumFractionDigits: size >= 1e8 ? 0 : 1 })}M`;
+  if (size >= 1e4) return `${(value / 1e3).toLocaleString(LOCALE, { maximumFractionDigits: size >= 1e5 ? 0 : 1 })}k`;
   return integer.format(value);
 };
+const words = value => (Math.abs(value) >= 1e6 ? `${(value / 1e6).toLocaleString(LOCALE, { maximumFractionDigits: 1 })} million` : integer.format(value));
 const signed = value => (value > 0 ? '+' : '') + compact(value);
-const percent = value => value.toLocaleString(LOCALE, { maximumFractionDigits: 1 }) + ' %';
+const percent = value => `${value.toLocaleString(LOCALE, { maximumFractionDigits: value >= 10 ? 0 : 1 })}%`;
 const longDate = time => new Date(time).toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 const monthLabel = time => new Date(time).toLocaleDateString(LOCALE, { month: 'short', year: 'numeric', timeZone: 'UTC' });
+const duration = years => (years >= 2 ? `${years.toLocaleString(LOCALE, { maximumFractionDigits: 1 })} years` : `${Math.round(years * 12)} months`);
 const niceStep = max => {
   const raw = Math.max(max, 1) / 5;
   const power = 10 ** Math.floor(Math.log10(raw));
@@ -214,17 +276,15 @@ const niceStep = max => {
 };
 
 const repoAllowed = index => {
+  if (state.scope === ALL) return true;
   const repo = DATA.repos[index];
-  if (state.repo !== ALL) return repo.name === state.repo;
-  return state.scope === ALL || repo.group === state.scope;
+  return state.scope === `group:${repo.group}` || state.scope === `repo:${repo.name}`;
 };
-const personAllowed = index => {
-  if (state.person !== ALL) return DATA.people[index].name === state.person;
-  return state.types.has(DATA.people[index].type);
-};
-const KIND_INDEX = Object.fromEntries(DATA.kinds.map((kind, index) => [kind.key, index]));
+const personAllowed = index => (state.person !== ALL ? DATA.people[index].name === state.person : state.types.has(DATA.people[index].type));
 const kindAllowed = index => state.kinds.has(DATA.kinds[index].key);
-const kindMask = () => DATA.kinds.reduce((mask, kind, index) => state.kinds.has(kind.key) ? mask | (1 << index) : mask, 0);
+const kindMask = () => DATA.kinds.reduce((mask, kind, index) => (state.kinds.has(kind.key) ? mask | (1 << index) : mask), 0);
+const eventVisible = e => !e.repo || (REPO_INDEX.has(e.repo) && repoAllowed(REPO_INDEX.get(e.repo)));
+const eventTime = e => Date.parse(`${e.date}T00:00:00Z`);
 
 const groupKey = (dim, row) => {
   if (dim === 'person') return DATA.people[row[1]].name;
@@ -239,7 +299,7 @@ const collect = dim => {
     if (!repoAllowed(row[0]) || !personAllowed(row[1]) || !kindAllowed(row[3])) continue;
     const key = groupKey(dim, row);
     let delta = deltas.get(key);
-    if (!delta) deltas.set(key, delta = new Float64Array(DATA.dates.length));
+    if (!delta) deltas.set(key, (delta = new Float64Array(DATA.dates.length)));
     const points = row[5];
     let previous = 0;
     for (let i = 0; i < points.length; i += 2) {
@@ -250,53 +310,55 @@ const collect = dim => {
   const out = new Map();
   for (const [key, delta] of deltas) {
     let total = 0;
-    out.set(key, Array.from(delta, value => (total += value)));
+    out.set(key, Float64Array.from(delta, value => (total += value)));
   }
   return out;
 };
 
 const seriesHues = () => Array.from({ length: 8 }, (_, i) => css(`--s${i + 1}`));
 const ramp = () => css('--ramp').split(',').map(c => c.trim());
+const rankOf = map => [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
 
+/* Colors follow the entity across every view: people who appear together in a scope's top 8 never share a hue. */
 const assignColors = () => {
   const totals = { person: new Map(), repo: new Map(), language: new Map() };
-  const scopeTotals = new Map();
-  const defaults = DATA.kinds.filter(k => k.default).map(k => KIND_INDEX[k.key]);
+  const scopes = new Map();
+  const add = (map, key, value) => map.set(key, (map.get(key) || 0) + value);
   for (const row of DATA.series) {
-    if (!defaults.includes(row[3])) continue;
+    if (!DATA.kinds[row[3]].default) continue;
     const value = row[5][row[5].length - 1];
     const person = DATA.people[row[1]];
     const repo = DATA.repos[row[0]];
-    if (person.type !== 'import') totals.person.set(person.name, (totals.person.get(person.name) || 0) + value);
-    totals.repo.set(repo.name, (totals.repo.get(repo.name) || 0) + value);
-    totals.language.set(DATA.languages[row[2]], (totals.language.get(DATA.languages[row[2]]) || 0) + value);
+    add(totals.repo, repo.name, value);
+    add(totals.language, DATA.languages[row[2]], value);
     if (person.type === 'import') continue;
+    add(totals.person, person.name, value);
     for (const scope of [ALL, `group:${repo.group}`, `repo:${repo.name}`]) {
-      if (!scopeTotals.has(scope)) scopeTotals.set(scope, new Map());
-      const map = scopeTotals.get(scope);
-      map.set(person.name, (map.get(person.name) || 0) + value);
+      if (!scopes.has(scope)) scopes.set(scope, new Map());
+      add(scopes.get(scope), person.name, value);
     }
   }
-  const rank = map => [...map.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).map(e => e[0]);
   const conflicts = new Map();
-  for (const map of scopeTotals.values()) {
-    const top = rank(map).slice(0, 8);
+  for (const map of scopes.values()) {
+    const top = rankOf(map).slice(0, 8);
     for (const a of top) {
       if (!conflicts.has(a)) conflicts.set(a, new Set());
       for (const b of top) if (a !== b) conflicts.get(a).add(b);
     }
   }
   const person = new Map();
-  for (const name of rank(totals.person)) {
-    const taken = new Set([...(conflicts.get(name) || [])].map(other => person.get(other)));
+  for (const name of rankOf(totals.person)) {
+    if (!conflicts.has(name)) { person.set(name, -1); continue; }
+    const taken = new Set([...conflicts.get(name)].map(other => person.get(other)));
     let slot = 0;
     while (slot < 8 && taken.has(slot)) slot++;
-    person.set(name, slot < 8 ? slot : person.size % 8);
+    person.set(name, slot < 8 ? slot : -1);
   }
-  const byRank = map => new Map(rank(map).map((name, index) => [name, index < 8 ? index : -1]));
+  const byRank = map => new Map(rankOf(map).map((name, index) => [name, index < 8 ? index : -1]));
   return { person, repo: byRank(totals.repo), language: byRank(totals.language) };
 };
 const SLOTS = assignColors();
+const PERSON_TYPE = new Map(DATA.people.map(p => [p.name, p.type]));
 
 const buildVisible = (entries, dim) => {
   const sorted = entries.filter(e => e.score > 0).sort((a, b) => b.score - a.score || a.key.localeCompare(b.key));
@@ -314,33 +376,440 @@ const buildVisible = (entries, dim) => {
   const rest = [];
   let imported = null;
   for (const entry of sorted) {
-    const person = dim === 'person' && DATA.people.find(p => p.name === entry.key);
-    if (person && person.type === 'import') { imported = { ...entry, label: entry.key, color: css('--import') }; continue; }
+    if (dim === 'person' && PERSON_TYPE.get(entry.key) === 'import') {
+      imported = { ...entry, label: entry.key, color: css('--import') };
+      continue;
+    }
     const slot = SLOTS[dim] ? SLOTS[dim].get(entry.key) : -1;
     if (slot === undefined || slot < 0 || used.has(slot) || visible.length >= 8) { rest.push(entry); continue; }
     used.add(slot);
     visible.push({ ...entry, label: entry.key, color: hues[slot] });
   }
-  if (rest.length) {
+  if (rest.length === 1) {
+    visible.push({ ...rest[0], label: rest[0].key, color: css('--other') });
+  } else if (rest.length) {
     const length = rest[0].values.length;
-    const values = Array.from({ length }, (_, i) => rest.reduce((sum, entry) => sum + entry.values[i], 0));
-    const score = rest.reduce((sum, entry) => sum + entry.score, 0);
+    const values = new Float64Array(length);
+    for (const entry of rest) for (let i = 0; i < length; i++) values[i] += entry.values[i];
     const noun = dim === 'person' ? 'people' : dim === 'repo' ? 'repositories' : 'languages';
-    visible.push({ key: OTHER, label: `Others (${rest.length} ${noun})`, color: css('--other'), values, score, members: rest });
+    visible.push({ key: OTHER, label: `${integer.format(rest.length)} other ${noun}`, color: css('--other'), values, score: rest.reduce((sum, e) => sum + e.score, 0) });
   }
   if (imported) visible.push(imported);
   return visible;
 };
 
-const rangeStart = () => {
-  if (state.period === 'all') return firstActive();
-  const end = TIMES[LAST];
-  const limit = state.period === 'claude4' ? Date.parse('2025-05-22T00:00:00Z') : end - Number(state.period) * 30.44 * 86400000;
-  const index = TIMES.findIndex(time => time >= limit);
-  return Math.max(index < 0 ? 0 : index, firstActive());
+const lastActivity = () => {
+  const seen = new Map();
+  const mask = kindMask();
+  for (const row of DATA.commits) {
+    if (!repoAllowed(row[0]) || !(row[3] & mask)) continue;
+    const name = DATA.people[row[1]].name;
+    const month = DATA.months[row[2]];
+    if (!seen.has(name) || seen.get(name) < month) seen.set(name, month);
+  }
+  return seen;
 };
-let activeStart = 0;
-const firstActive = () => activeStart;
+
+const view = {};
+const compute = () => {
+  view.groups = collect(state.dim);
+  view.people = state.dim === 'person' ? view.groups : collect('person');
+  view.quarters = collect('quarter');
+  view.total = new Float64Array(DATA.dates.length);
+  for (const values of view.groups.values()) for (let i = 0; i <= LAST; i++) view.total[i] += values[i];
+  const first = view.total.findIndex(value => value > 0);
+  view.first = first < 0 ? LAST : first;
+  view.start = view.first;
+  if (state.period !== 'all') {
+    const limit = state.period === 'claude4' ? Date.parse('2025-05-22T00:00:00Z') : TIMES[LAST] - Number(state.period) * 30.44 * 86400000;
+    const index = TIMES.findIndex(time => time >= limit);
+    view.start = Math.max(index < 0 ? 0 : index, view.first);
+  }
+  const entries = [...view.groups.entries()].map(([key, values]) => ({ key, values, score: values[LAST] || Math.max(...values.subarray(view.start)) }));
+  view.all = buildVisible(entries, state.dim);
+  view.visible = view.all.filter(entry => !state.isolate || entry.key === state.isolate);
+  view.stack = new Float64Array(DATA.dates.length);
+  for (const entry of view.visible) for (let i = 0; i <= LAST; i++) view.stack[i] += entry.values[i];
+  view.lastSeen = lastActivity();
+  if (state.date !== null && (state.date < view.start || state.date > LAST)) { state.date = null; state.pinned = false; }
+};
+const current = () => (state.date === null ? LAST : state.date);
+const quarterEnd = cohort => Date.UTC(Number(cohort.slice(0, 4)), Number(cohort.slice(5)) * 3, 1);
+const scopeLabel = () => (state.scope === ALL ? DATA.title : state.scope.replace(/^(group|repo):/, ''));
+const subjectName = () => (state.person === ALL ? scopeLabel() : `${scopeLabel()}, by ${state.person}`);
+
+/* The headline is computed: it must stay true for every filter and every date. */
+const headline = index => {
+  const total = view.total[index];
+  if (!total) return `No lines match this selection in ${subjectName()}.`;
+  const when = `were alive on ${longDate(TIMES[index])}`;
+  const parts = [`${words(total)} lines ${when} in ${subjectName()}.`];
+  let recent = 0;
+  const cut = TIMES[index] - YEAR;
+  for (const [cohort, values] of view.quarters) if (quarterEnd(cohort) > cut) recent += values[index];
+  if (recent > 0 && TIMES[index] - TIMES[view.first] > YEAR * 1.5) parts.push(`${percent(recent / total * 100)} of them had been written in the previous 12 months.`);
+  if (state.person === ALL) {
+    let best = null;
+    let bestLines = 0;
+    for (const [name, values] of view.people) {
+      if (PERSON_TYPE.get(name) !== 'import' && values[index] > bestLines) { best = name; bestLines = values[index]; }
+    }
+    if (best) parts.push(`${best} wrote the most: ${percent(bestLines / total * 100)}.`);
+  }
+  return parts.join(' ');
+};
+
+const peopleByLines = index => [...view.people.entries()]
+  .filter(([name, values]) => PERSON_TYPE.get(name) !== 'import' && values[index] > 0)
+  .sort((a, b) => b[1][index] - a[1][index] || a[0].localeCompare(b[0]));
+
+const pooledHalfLife = () => {
+  const lists = [];
+  for (const [cohort, values] of view.quarters) {
+    const startIndex = TIMES.findIndex(time => time >= quarterEnd(cohort));
+    if (startIndex >= 0) lists.push(values.subarray(startIndex));
+  }
+  const longest = lists.reduce((max, values) => Math.max(max, values.length), 0);
+  let survival = 1;
+  for (let age = 1; age < longest; age++) {
+    let before = 0;
+    let after = 0;
+    for (const values of lists) {
+      if (age < values.length && values[age - 1] > 0) {
+        before += values[age - 1];
+        after += Math.min(values[age], values[age - 1]);
+      }
+    }
+    if (before > 0) survival *= after / before;
+    if (survival <= 0.5) return age * DATA.manifest.interval_weeks * 7 * 86400000 / YEAR;
+  }
+  return null;
+};
+
+const focusChart = () => document.getElementById('main').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+const setDim = dim => { state.dim = dim; state.isolate = null; render(); focusChart(); };
+const setPeriod = period => { state.period = period; render(); focusChart(); };
+const pin = index => {
+  state.date = index;
+  state.pinned = true;
+  if (index < view.start) state.period = 'all';
+  render();
+  focusChart();
+};
+
+const findings = () => {
+  const out = [];
+  const total = view.total[LAST];
+  if (!total) return out;
+  const quarterSamples = Math.max(1, Math.round(13 / DATA.manifest.interval_weeks));
+  const owners = peopleByLines(LAST);
+  if (state.person === ALL && owners.length > 1) {
+    let sum = 0;
+    let count = 0;
+    for (const [, values] of owners) { sum += values[LAST]; count++; if (sum >= total / 2) break; }
+    out.push({
+      say: count === 1 ? `One person wrote half of the surviving code: ${owners[0][0]}.` : `${integer.format(count)} of ${integer.format(owners.length)} people wrote half of the surviving code.`,
+      why: 'The smaller this number, the more knowledge depends on few people.',
+      go: () => setDim('person'),
+    });
+  }
+  const half = pooledHalfLife();
+  if (half !== null) {
+    out.push({ say: `A line of code here has a half-life of ${duration(half)}.`, why: 'Half of what gets written has been replaced after this long.', go: () => document.getElementById('survival').scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' }) });
+  }
+  let bestRise = 0;
+  let riseAt = -1;
+  let bestFall = 0;
+  let fallAt = -1;
+  for (let i = view.first + quarterSamples; i <= LAST; i++) {
+    const delta = view.total[i] - view.total[i - quarterSamples];
+    if (delta > bestRise) { bestRise = delta; riseAt = i; }
+    if (delta < bestFall) { bestFall = delta; fallAt = i; }
+  }
+  if (riseAt >= 0 && state.person === ALL) {
+    let who = null;
+    let most = 0;
+    for (const [name, values] of view.people) {
+      const delta = values[riseAt] - values[riseAt - quarterSamples];
+      if (delta > most) { most = delta; who = name; }
+    }
+    out.push({ say: `The fastest growth was ${compact(bestRise)} new lines in the three months to ${monthLabel(TIMES[riseAt])}.`, why: who ? `Mostly ${who}. A jump this size can be a large merge or an import: git-planks audit shows the files behind it.` : '', go: () => pin(riseAt) });
+  }
+  if (fallAt >= 0 && -bestFall > total * 0.01) {
+    out.push({ say: `The largest clean-up removed ${compact(-bestFall)} lines in the three months to ${monthLabel(TIMES[fallAt])}.`, why: 'Deleted code rarely gets credit on a chart like this one.', go: () => pin(fallAt) });
+  }
+  const oldest = [...view.quarters].sort((a, b) => a[0].localeCompare(b[0])).find(([, values]) => values[LAST] > 0);
+  if (oldest && Number(oldest[0].slice(0, 4)) < new Date(TIMES[LAST]).getUTCFullYear() - 1) {
+    out.push({ say: `${compact(oldest[1][LAST])} lines from ${oldest[0].slice(0, 4)} are still here.`, why: 'The oldest planks of the ship.', go: () => setDim('cohort') });
+  }
+  if (state.person === ALL && owners.length > 1) {
+    const cutMonth = new Date(TIMES[LAST] - YEAR).toISOString().slice(0, 7);
+    let departed = 0;
+    for (const [name, values] of owners) if ((view.lastSeen.get(name) || '') < cutMonth) departed += values[LAST];
+    if (departed > 0) out.push({ say: `${percent(departed / total * 100)} of the surviving lines come from people with no commit in the last 12 months.`, why: 'Code whose authors may no longer be around to explain it.', go: () => setDim('person') });
+  }
+  if (HAS_MODELS) {
+    const reference = TIMES.findIndex(time => time >= Date.parse('2025-05-22T00:00:00Z'));
+    if (reference > view.first && view.total[reference] > 0 && TIMES[reference] > TIMES[view.first] + YEAR) {
+      const factor = total / view.total[reference];
+      out.push({ say: `The code ${factor >= 1 ? `grew ${factor.toLocaleString(LOCALE, { maximumFractionDigits: 2 })} times` : 'shrank'} since Claude 4 came out, in May 2025.`, why: 'A date for context, not a proof of cause.', go: () => setPeriod('claude4') });
+    }
+  }
+  return out;
+};
+
+const xTicks = (from, to) => {
+  const span = (to - from) / 86400000;
+  const months = span > 3650 ? 24 : span > 1500 ? 12 : span > 700 ? 6 : span > 300 ? 3 : 1;
+  const ticks = [];
+  const start = new Date(from);
+  let cursor = Date.UTC(start.getUTCFullYear(), Math.floor(start.getUTCMonth() / months) * months + months, 1);
+  while (cursor <= to) {
+    ticks.push(cursor);
+    const date = new Date(cursor);
+    cursor = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1);
+  }
+  return { ticks, label: months >= 12 ? time => String(new Date(time).getUTCFullYear()) : monthLabel };
+};
+
+const player = { running: false, frame: 0 };
+const stopPlayer = () => {
+  if (!player.running) return;
+  player.running = false;
+  cancelAnimationFrame(player.frame);
+  document.getElementById('play').textContent = 'Play history';
+};
+
+const chart = {};
+const renderChart = () => {
+  const host = document.getElementById('main');
+  host.replaceChildren();
+  chart.svg = null;
+  if (!view.all.length) {
+    host.append(el('div', { class: 'empty', text: 'No lines match this selection. Widen the content or the authors with More options.' }));
+    return;
+  }
+  const start = view.start;
+  const width = Math.max(host.clientWidth, 300);
+  const height = Math.round(Math.min(560, Math.max(280, width * 0.5)));
+  const events = state.events ? DATA.events.filter(e => eventTime(e) >= TIMES[start] && eventTime(e) <= TIMES[LAST] && eventVisible(e)) : [];
+  const margin = { top: events.length ? 44 : 12, right: 4, bottom: 26, left: 46 };
+  const plotW = width - margin.left - margin.right;
+  const plotH = height - margin.top - margin.bottom;
+  const from = TIMES[start];
+  const to = TIMES[LAST];
+  const xOf = time => margin.left + (to > from ? (time - from) / (to - from) : 0) * plotW;
+  const asShare = state.unit === 'share';
+  let maxY = 0;
+  for (let i = start; i <= LAST; i++) maxY = Math.max(maxY, view.stack[i]);
+  const step = asShare ? 25 : niceStep(maxY);
+  const top = asShare ? 100 : Math.ceil(maxY / step) * step || step;
+  const yOf = value => margin.top + plotH - (value / top) * plotH;
+  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', tabindex: 0, 'aria-label': 'Surviving lines over time. Use the left and right arrow keys to move through time.' });
+  for (let value = 0; value <= top + 1e-9; value += step) {
+    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
+    const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
+    label.textContent = asShare ? `${value}%` : compact(value);
+    svg.append(label);
+  }
+  const { ticks, label: tickLabel } = xTicks(from, to);
+  let lastTick = -Infinity;
+  for (const tick of ticks) {
+    const x = xOf(tick);
+    if (x - lastTick < 64) continue;
+    lastTick = x;
+    const label = svgEl('text', { x, y: height - 6, 'text-anchor': 'middle' });
+    label.textContent = tickLabel(tick);
+    svg.append(label);
+  }
+  const bands = svgEl('g', { class: 'bands' });
+  const cumulative = new Float64Array(TIMES.length);
+  const page = css('--page');
+  const fill = css('--fill');
+  const shapes = [];
+  const count = LAST - start + 1;
+  const stride = count > plotW ? Math.ceil(count / plotW) : 1;
+  for (const entry of view.visible) {
+    const upper = [];
+    const lower = [];
+    for (let i = start; i <= LAST; i++) {
+      const value = asShare ? (view.stack[i] ? entry.values[i] / view.stack[i] * 100 : 0) : entry.values[i];
+      const base = cumulative[i];
+      cumulative[i] = base + value;
+      if ((i - start) % stride === 0 || i === LAST) {
+        const x = xOf(TIMES[i]).toFixed(1);
+        upper.push(`${x},${yOf(base + value).toFixed(1)}`);
+        lower.push(`${x},${yOf(base).toFixed(1)}`);
+      }
+    }
+    const shape = svgEl('path', { d: `M${upper.join('L')}L${lower.reverse().join('L')}Z`, fill: entry.color, 'fill-opacity': fill, stroke: page, 'stroke-width': 1.5, 'stroke-linejoin': 'round' });
+    shapes.push([entry.key, shape]);
+    bands.append(shape);
+  }
+  const clip = svgEl('clipPath', { id: 'planks-clip' });
+  const clipRect = svgEl('rect', { x: 0, y: 0, width, height });
+  clip.append(clipRect);
+  svg.append(clip);
+  bands.setAttribute('clip-path', 'url(#planks-clip)');
+  svg.append(bands);
+
+  const lanes = [-Infinity, -Infinity, -Infinity];
+  for (const event of [...events].sort((a, b) => a.date.localeCompare(b.date))) {
+    const x = xOf(eventTime(event));
+    const model = event.type === 'model';
+    svg.append(svgEl('line', { x1: x, x2: x, y1: margin.top, y2: margin.top + plotH, stroke: css('--ink'), 'stroke-opacity': model ? .16 : .4 }));
+    svg.append(svgEl('circle', { cx: x, cy: margin.top + plotH, r: model ? 2.5 : 3.5, fill: css('--ink-2'), stroke: page, 'stroke-width': 1.5 }));
+    const textWidth = event.label.length * 5.7 + 8;
+    const flip = x + textWidth > width;
+    const lane = lanes.findIndex(limit => (flip ? x - textWidth : x) >= limit);
+    if (lane >= 0) {
+      lanes[lane] = flip ? x + 3 : x + textWidth;
+      const label = svgEl('text', { x: flip ? x + 2 : x - 2, y: margin.top - 6 - lane * 12, class: 'event', 'text-anchor': flip ? 'end' : 'start' });
+      label.textContent = event.label;
+      svg.append(label);
+    }
+  }
+
+  const cross = svgEl('line', { y1: margin.top, y2: margin.top + plotH, stroke: css('--ink'), 'stroke-width': 1.5, visibility: 'hidden' });
+  svg.append(cross);
+  host.append(svg);
+  Object.assign(chart, { svg, xOf, cross, clipRect, shapes, width, margin, fill });
+
+  const nearest = clientX => {
+    const box = svg.getBoundingClientRect();
+    const time = from + ((clientX - box.left) * (width / box.width) - margin.left) / plotW * (to - from);
+    let low = start;
+    let high = LAST;
+    while (high - low > 1) {
+      const middle = (low + high) >> 1;
+      if (TIMES[middle] < time) low = middle; else high = middle;
+    }
+    return Math.abs(TIMES[low] - time) < Math.abs(TIMES[high] - time) ? low : high;
+  };
+  svg.addEventListener('pointermove', event => {
+    if (state.pinned || player.running) return;
+    state.date = nearest(event.clientX);
+    update();
+  });
+  svg.addEventListener('pointerleave', () => {
+    if (state.pinned || player.running) return;
+    state.date = null;
+    update();
+  });
+  svg.addEventListener('click', event => {
+    stopPlayer();
+    const index = nearest(event.clientX);
+    state.pinned = !state.pinned;
+    state.date = state.pinned ? index : null;
+    syncHash();
+    update();
+  });
+  svg.addEventListener('keydown', event => {
+    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+    event.preventDefault();
+    const stepSize = event.shiftKey ? 13 : 1;
+    state.date = Math.min(LAST, Math.max(start, current() + (event.key === 'ArrowLeft' ? -stepSize : stepSize)));
+    state.pinned = true;
+    syncHash();
+    update();
+  });
+};
+
+const rankRows = new Map();
+const highlight = key => {
+  for (const [name, shape] of chart.shapes || []) shape.setAttribute('fill-opacity', key === null || name === key ? chart.fill : .16);
+};
+const renderRank = index => {
+  const host = document.getElementById('rank');
+  const total = view.all.reduce((sum, entry) => sum + entry.values[index], 0);
+  const trailing = key => key === OTHER || PERSON_TYPE.get(key) === 'import';
+  const entries = [...view.all].sort((a, b) => {
+    if (state.dim === 'cohort') return b.key.localeCompare(a.key);
+    return trailing(a.key) - trailing(b.key) || b.values[index] - a.values[index] || a.key.localeCompare(b.key);
+  });
+  const widest = Math.max(1, ...view.all.filter(e => e.key !== OTHER).map(e => e.values[index]));
+  const wanted = new Set(entries.map(e => e.key));
+  for (const [key, row] of rankRows) {
+    if (!wanted.has(key)) { row.node.remove(); rankRows.delete(key); }
+  }
+  entries.forEach((entry, position) => {
+    let row = rankRows.get(entry.key);
+    if (!row) {
+      const name = el('span', { class: 'name' });
+      const value = el('span', { class: 'value' });
+      const bar = el('span');
+      const key = entry.key;
+      const node = el('button', {
+        class: 'row',
+        onclick: () => { state.isolate = state.isolate === key ? null : key; compute(); renderChart(); update(); syncHash(); },
+        onpointerenter: () => highlight(key),
+        onpointerleave: () => highlight(null),
+      }, name, value, el('span', { class: 'meter' }, bar));
+      row = { node, name, value, bar };
+      rankRows.set(key, row);
+      host.append(node);
+    }
+    row.name.textContent = entry.label;
+    row.value.textContent = state.unit === 'share' ? percent(total ? entry.values[index] / total * 100 : 0) : compact(entry.values[index]);
+    row.bar.style.width = `${Math.min(100, entry.values[index] / widest * 100)}%`;
+    row.bar.style.background = entry.color;
+    row.node.style.transform = `translateY(${position * 44}px)`;
+    row.node.classList.toggle('on', state.isolate === entry.key);
+    row.node.classList.toggle('off', Boolean(state.isolate) && state.isolate !== entry.key);
+    row.node.setAttribute('aria-pressed', String(state.isolate === entry.key));
+    row.node.setAttribute('aria-label', `${entry.label}: ${integer.format(entry.values[index])} lines. Select to isolate.`);
+  });
+  host.style.height = `${entries.length * 44}px`;
+};
+
+/* Runs on every pointer move: everything here reads the arrays computed by `compute`. */
+const update = () => {
+  const index = current();
+  document.getElementById('headline').textContent = headline(index);
+  document.getElementById('railDate').textContent = longDate(TIMES[index]);
+  const near = state.events ? DATA.events.filter(e => eventVisible(e) && eventTime(e) <= TIMES[index] && (index === 0 || eventTime(e) > TIMES[index - 1])) : [];
+  document.getElementById('railNote').textContent = near.map(e => (e.type === 'model' ? `${e.label} released` : e.label)).join(', ');
+  document.getElementById('hint').textContent = state.pinned ? 'Date pinned. Click the chart to release it.' : 'Move over the chart to go back in time. Click to pin a date.';
+  renderRank(index);
+  if (chart.svg) {
+    const x = chart.xOf(TIMES[index]);
+    chart.cross.setAttribute('visibility', state.date !== null ? 'visible' : 'hidden');
+    chart.cross.setAttribute('x1', x);
+    chart.cross.setAttribute('x2', x);
+    chart.clipRect.setAttribute('width', player.running ? x : chart.width);
+  }
+};
+
+const playHistory = () => {
+  if (player.running) {
+    stopPlayer();
+    state.date = null;
+    update();
+    return;
+  }
+  state.pinned = false;
+  if (REDUCED) { state.date = null; update(); return; }
+  player.running = true;
+  document.getElementById('play').textContent = 'Stop';
+  const started = performance.now();
+  const span = Math.max(LAST - view.start, 1);
+  const lengthMs = Math.min(16000, Math.max(5000, span * 22));
+  const tick = now => {
+    if (!player.running) return;
+    const progress = Math.min(1, (now - started) / lengthMs);
+    const eased = progress < .5 ? 2 * progress * progress : 1 - (2 - 2 * progress) ** 2 / 2;
+    state.date = view.start + Math.round(eased * span);
+    update();
+    if (progress < 1) {
+      player.frame = requestAnimationFrame(tick);
+    } else {
+      stopPlayer();
+      state.date = null;
+      update();
+    }
+  };
+  player.frame = requestAnimationFrame(tick);
+};
 
 const makeTip = host => {
   const tip = el('div', { class: 'tip' });
@@ -350,224 +819,56 @@ const makeTip = host => {
 const placeTip = (tip, host, x, y) => {
   tip.style.display = 'block';
   const width = tip.offsetWidth;
-  const hostWidth = host.clientWidth;
-  tip.style.left = `${x + 14 + width > hostWidth ? Math.max(0, x - width - 14) : x + 14}px`;
+  tip.style.left = `${x + 14 + width > host.clientWidth ? Math.max(0, x - width - 14) : x + 14}px`;
   tip.style.top = `${Math.max(0, y)}px`;
 };
-const tipRow = (color, value, name) => el('div', { class: 'row' }, el('span', { class: 'key', style: `background:${color}` }), el('span', { class: 'num', text: value }), el('span', { class: 'name', text: name }));
+const tipLine = (color, value, name) => el('div', { class: 'line' }, el('span', { class: 'key', style: `background:${color}` }), el('span', { class: 'num', text: value }), el('span', { class: 'who', text: name }));
+const legendItem = (color, label, value) => el('span', {}, el('span', { class: 'swatch', style: `background:${color}` }), document.createTextNode(label), el('b', { text: value }));
 
-const xTicks = (from, to) => {
-  const span = (to - from) / 86400000;
-  const months = span > 1500 ? 12 : span > 700 ? 6 : span > 300 ? 3 : span > 100 ? 1 : 1;
-  const ticks = [];
-  const start = new Date(from);
-  let cursor = Date.UTC(start.getUTCFullYear(), Math.floor(start.getUTCMonth() / months) * months + months, 1);
-  while (cursor <= to) {
-    ticks.push(cursor);
-    const date = new Date(cursor);
-    cursor = Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1);
-  }
-  return { ticks, label: months === 12 ? time => String(new Date(time).getUTCFullYear()) : monthLabel };
-};
-
-const renderMain = () => {
-  const host = document.getElementById('main');
-  const groups = collect(state.dim);
-  let first = LAST;
-  for (const values of groups.values()) {
-    const index = values.findIndex(value => value > 0);
-    if (index >= 0 && index < first) first = index;
-  }
-  activeStart = first;
-  const start = rangeStart();
-  const entries = [...groups.entries()].map(([key, values]) => ({ key, values, score: values[LAST] || Math.max(...values.slice(start)) }));
-  const all = buildVisible(entries, state.dim);
-  const visible = all.filter(entry => !state.isolate || entry.key === state.isolate);
-  host.replaceChildren();
-  const legend = document.getElementById('legend');
-  legend.replaceChildren();
-  const totalAt = index => [...groups.values()].reduce((sum, values) => sum + values[index], 0);
-  if (!all.length) {
-    host.append(el('div', { class: 'empty', text: 'No lines match this filter.' }));
-    return { start, end: LAST, totalAt };
-  }
-  const width = Math.max(host.clientWidth, 320);
-  const height = Math.round(Math.min(480, Math.max(300, width * 0.42)));
-  const margin = { top: state.events ? 66 : 14, right: 16, bottom: 28, left: 56 };
-  const plotW = width - margin.left - margin.right;
-  const plotH = height - margin.top - margin.bottom;
-  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', tabindex: 0, 'aria-label': 'Surviving lines over time' });
-  const from = TIMES[start];
-  const to = TIMES[LAST];
-  const xOf = time => margin.left + (to > from ? (time - from) / (to - from) : 0) * plotW;
-  const asShare = state.unit === 'share';
-  const stackTotals = TIMES.map((_, i) => visible.reduce((sum, entry) => sum + entry.values[i], 0));
-  let maxY = 0;
-  for (let i = start; i <= LAST; i++) maxY = Math.max(maxY, asShare ? 100 : stackTotals[i]);
-  const step = asShare ? 25 : niceStep(maxY);
-  const top = asShare ? 100 : Math.ceil(maxY / step) * step || step;
-  const yOf = value => margin.top + plotH - (value / top) * plotH;
-  for (let value = 0; value <= top + 1e-9; value += step) {
-    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
-    const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
-    label.textContent = asShare ? `${value} %` : compact(value);
-    svg.append(label);
-  }
-  const { ticks, label: tickLabel } = xTicks(from, to);
-  const minGap = 62;
-  let lastTick = -Infinity;
-  for (const tick of ticks) {
-    const x = xOf(tick);
-    if (x - lastTick < minGap) continue;
-    lastTick = x;
-    svg.append(svgEl('line', { x1: x, x2: x, y1: height - margin.bottom, y2: height - margin.bottom + 4, stroke: css('--axis') }));
-    const label = svgEl('text', { x, y: height - 8, 'text-anchor': 'middle' });
-    label.textContent = tickLabel(tick);
-    svg.append(label);
-  }
-  const cumulative = new Float64Array(TIMES.length);
-  const valueOf = (entry, i) => asShare ? (stackTotals[i] ? entry.values[i] / stackTotals[i] * 100 : 0) : entry.values[i];
-  for (const entry of visible) {
-    const upper = [];
-    const lower = [];
-    for (let i = start; i <= LAST; i++) {
-      const base = cumulative[i];
-      const next = base + valueOf(entry, i);
-      cumulative[i] = next;
-      upper.push(`${xOf(TIMES[i]).toFixed(1)},${yOf(next).toFixed(1)}`);
-      lower.push(`${xOf(TIMES[i]).toFixed(1)},${yOf(base).toFixed(1)}`);
-    }
-    svg.append(svgEl('path', { d: `M${upper.join('L')}L${lower.reverse().join('L')}Z`, fill: entry.color, 'fill-opacity': css('--fill') }));
-    svg.append(svgEl('path', { d: `M${upper.join('L')}`, fill: 'none', stroke: entry.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-  }
-  const eventVisible = e => !e.repo || (REPO_INDEX.has(e.repo) && repoAllowed(REPO_INDEX.get(e.repo)));
-  const events = state.events ? DATA.events.filter(e => { const t = Date.parse(e.date + 'T00:00:00Z'); return t >= from && t <= to && eventVisible(e); }) : [];
-  const lanes = [-Infinity, -Infinity, -Infinity, -Infinity];
-  for (const event of [...events].sort((a, b) => a.date.localeCompare(b.date))) {
-    const x = xOf(Date.parse(event.date + 'T00:00:00Z'));
-    const textWidth = event.label.length * 6 + 10;
-    const flip = x + textWidth > width;
-    const lane = lanes.findIndex(end => (flip ? x - textWidth : x) >= end);
-    svg.append(svgEl('line', { x1: x, x2: x, y1: lane >= 0 ? 10 + lane * 13 + 4 : margin.top, y2: height - margin.bottom, stroke: event.type === 'model' ? css('--muted') : css('--ink-2'), 'stroke-opacity': event.type === 'model' ? .45 : .8 }));
-    svg.append(svgEl(event.type === 'model' ? 'circle' : 'rect', event.type === 'model'
-      ? { cx: x, cy: height - margin.bottom, r: 3, fill: css('--muted'), stroke: css('--surface'), 'stroke-width': 2 }
-      : { x: x - 3, y: height - margin.bottom - 3, width: 6, height: 6, fill: css('--ink-2'), stroke: css('--surface'), 'stroke-width': 2 }));
-    if (lane >= 0) {
-      lanes[lane] = flip ? x + 3 : x + textWidth;
-      const label = svgEl('text', { x: flip ? x - 3 : x + 3, y: 10 + lane * 13, class: 'event', 'text-anchor': flip ? 'end' : 'start' });
-      label.textContent = event.label;
-      svg.append(label);
-    }
-  }
-  const cross = svgEl('line', { y1: margin.top, y2: height - margin.bottom, stroke: css('--ink-2'), visibility: 'hidden' });
-  svg.append(cross);
-  host.append(svg);
-  const tip = makeTip(host);
-  const showAt = (i, y) => {
-    const x = xOf(TIMES[i]);
-    cross.setAttribute('x1', x);
-    cross.setAttribute('x2', x);
-    cross.setAttribute('visibility', 'visible');
-    tip.replaceChildren(el('div', { class: 'date', text: longDate(TIMES[i]) }));
-    for (const entry of [...visible].reverse()) {
-      if (!entry.values[i]) continue;
-      tip.append(tipRow(entry.color, asShare ? percent(valueOf(entry, i)) : compact(entry.values[i]), entry.label));
-    }
-    if (!asShare) tip.append(el('div', { class: 'row total' }, el('span'), el('span', { class: 'num', text: compact(stackTotals[i]) }), el('span', { class: 'name', text: 'Total' })));
-    const near = DATA.events.filter(e => { const t = Date.parse(e.date + 'T00:00:00Z'); return eventVisible(e) && t <= TIMES[i] && (!i || t > TIMES[i - 1]); });
-    if (state.events && near.length) tip.append(el('div', { class: 'note', text: near.map(e => e.label).join(', ') }));
-    placeTip(tip, host, x, y);
-  };
-  let current = LAST;
-  const nearest = clientX => {
-    const box = svg.getBoundingClientRect();
-    const time = from + ((clientX - box.left) * (width / box.width) - margin.left) / plotW * (to - from);
-    let best = start;
-    for (let i = start; i <= LAST; i++) if (Math.abs(TIMES[i] - time) < Math.abs(TIMES[best] - time)) best = i;
-    return best;
-  };
-  svg.addEventListener('pointermove', event => {
-    current = nearest(event.clientX);
-    const box = svg.getBoundingClientRect();
-    showAt(current, event.clientY - box.top - 20);
-  });
-  svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
-  svg.addEventListener('focus', () => showAt(current, margin.top));
-  svg.addEventListener('blur', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
-  svg.addEventListener('keydown', event => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-    event.preventDefault();
-    current = Math.min(LAST, Math.max(start, current + (event.key === 'ArrowLeft' ? -1 : 1)));
-    showAt(current, margin.top);
-  });
-  for (const entry of [...all].reverse()) {
-    legend.append(el('button', {
-      class: state.isolate && state.isolate !== entry.key ? 'off' : '',
-      'aria-pressed': String(state.isolate === entry.key),
-      onclick: () => { state.isolate = state.isolate === entry.key ? null : entry.key; render(); },
-    }, el('span', { class: 'swatch', style: `background:${entry.color}` }), el('span', { text: entry.label }), el('span', { class: 'val', text: compact(entry.values[LAST]) })));
-  }
-  renderMainTable(all, start);
-  return { start, end: LAST, totalAt };
-};
-
-const renderMainTable = (entries, start) => {
-  const quarters = [];
-  for (let i = start; i <= LAST; i++) {
-    const date = new Date(TIMES[i]);
-    if (i === LAST || (date.getUTCMonth() % 3 === 0 && date.getUTCDate() <= 7)) quarters.push(i);
-  }
-  const shown = quarters.slice(-12);
-  const table = el('table');
-  table.append(el('thead', {}, el('tr', {}, el('th', { text: 'Series', class: 'text' }), ...shown.map(i => el('th', { text: longDate(TIMES[i]) })))));
-  const body = el('tbody');
-  for (const entry of [...entries].reverse()) {
-    body.append(el('tr', {}, el('td', { text: entry.label }), ...shown.map(i => el('td', { text: integer.format(entry.values[i]) }))));
-  }
-  table.append(body);
-  document.getElementById('mainTable').replaceChildren(table);
-};
-
-const activityRows = () => DATA.activity.filter(row => repoAllowed(row[0]) && personAllowed(row[1]));
-const commitRows = () => DATA.commits.filter(row => repoAllowed(row[0]) && personAllowed(row[1]) && (row[3] & kindMask()));
-
-const renderActivity = start => {
+const renderActivity = () => {
   const host = document.getElementById('activity');
   const legend = document.getElementById('activityLegend');
   host.replaceChildren();
   legend.replaceChildren();
-  const startMonth = DATA.dates[start].slice(0, 7);
+  document.getElementById('metric').replaceChildren(...[['added', 'Added'], ['deleted', 'Deleted'], ['commits', 'Commits']].map(([key, label]) => el('button', { 'aria-pressed': String(state.metric === key), text: label, onclick: () => { state.metric = key; renderActivity(); } })));
+  const startMonth = DATA.dates[view.start].slice(0, 7);
   const months = DATA.months.filter(month => month >= startMonth);
   const monthIndex = new Map(months.map((month, i) => [month, i]));
   const dim = state.dim === 'repo' ? 'repo' : 'person';
   const metric = state.metric;
-  document.getElementById('activitySub').textContent = `${metric === 'added' ? 'Lines added' : metric === 'deleted' ? 'Lines deleted' : 'Commits'} per month and per ${dim === 'repo' ? 'repository' : 'person'}, including code replaced since.`;
+  const noun = metric === 'added' ? 'Lines added' : metric === 'deleted' ? 'Lines deleted' : 'Commits';
+  document.getElementById('activitySub').textContent = `${noun} each month, by ${dim === 'repo' ? 'repository' : 'person'}, including code replaced since.`;
   const groups = new Map();
   const put = (row, value) => {
     const month = DATA.months[row[2]];
     if (!monthIndex.has(month) || !value) return;
     const key = dim === 'repo' ? DATA.repos[row[0]].name : DATA.people[row[1]].name;
-    if (!groups.has(key)) groups.set(key, new Array(months.length).fill(0));
+    if (!groups.has(key)) groups.set(key, new Float64Array(months.length));
     groups.get(key)[monthIndex.get(month)] += value;
   };
-  if (metric === 'commits') for (const row of commitRows()) put(row, row[4]);
-  else for (const row of activityRows()) if (state.kinds.has(row[3])) put(row, metric === 'added' ? row[4] : row[5]);
+  if (metric === 'commits') {
+    const mask = kindMask();
+    for (const row of DATA.commits) if (repoAllowed(row[0]) && personAllowed(row[1]) && (row[3] & mask)) put(row, row[4]);
+  } else {
+    for (const row of DATA.activity) if (repoAllowed(row[0]) && personAllowed(row[1]) && state.kinds.has(row[3])) put(row, metric === 'added' ? row[4] : row[5]);
+  }
   const entries = [...groups.entries()].map(([key, values]) => ({ key, values, score: values.reduce((a, b) => a + b, 0) }));
   const visible = buildVisible(entries, dim);
   if (!visible.length || !months.length) {
-    host.append(el('div', { class: 'empty', text: 'No activity matches this filter.' }));
+    host.append(el('div', { class: 'empty', text: 'No activity matches this selection.' }));
     return;
   }
   const width = Math.max(host.clientWidth, 280);
   const height = 300;
-  const margin = { top: 10, right: 8, bottom: 26, left: 50 };
+  const margin = { top: 14, right: 4, bottom: 26, left: 46 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const totals = months.map((_, i) => visible.reduce((sum, entry) => sum + entry.values[i], 0));
-  const step = niceStep(Math.max(...totals));
-  const top = Math.ceil(Math.max(...totals) / step) * step || step;
+  const peak = Math.max(...totals);
+  const step = niceStep(peak);
+  const top = Math.ceil(peak / step) * step || step;
   const yOf = value => margin.top + plotH - value / top * plotH;
-  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Monthly activity' });
+  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': `${noun} each month` });
   for (let value = 0; value <= top + 1e-9; value += step) {
     svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
     const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
@@ -575,8 +876,8 @@ const renderActivity = start => {
     svg.append(label);
   }
   const slot = plotW / months.length;
-  const barWidth = Math.max(1.5, Math.min(24, slot * 0.72));
-  const every = Math.max(1, Math.ceil(70 / slot));
+  const barWidth = Math.max(1, Math.min(24, slot * 0.76));
+  const every = Math.max(1, Math.ceil(72 / slot));
   months.forEach((month, i) => {
     const x = margin.left + i * slot + (slot - barWidth) / 2;
     let base = 0;
@@ -589,13 +890,13 @@ const renderActivity = start => {
       base += value;
       const gap = barWidth >= 4 ? 1 : 0;
       const barHeight = Math.max(0.5, y0 - y1 - gap);
-      const radius = entry === topEntry ? Math.min(4, barWidth / 2, barHeight) : 0;
+      const radius = entry === topEntry ? Math.min(3, barWidth / 2, barHeight) : 0;
       const yTop = y1 + gap;
       svg.append(svgEl('path', { fill: entry.color, d: `M${x},${yTop + barHeight}V${yTop + radius}Q${x},${yTop} ${x + radius},${yTop}H${x + barWidth - radius}Q${x + barWidth},${yTop} ${x + barWidth},${yTop + radius}V${yTop + barHeight}Z` }));
     }
     if (i % every === 0) {
-      const label = svgEl('text', { x: x + barWidth / 2, y: height - 8, 'text-anchor': 'middle' });
-      label.textContent = monthLabel(Date.parse(month + '-01T00:00:00Z'));
+      const label = svgEl('text', { x: x + barWidth / 2, y: height - 6, 'text-anchor': 'middle' });
+      label.textContent = monthLabel(Date.parse(`${month}-01T00:00:00Z`));
       svg.append(label);
     }
   });
@@ -605,32 +906,22 @@ const renderActivity = start => {
     const box = svg.getBoundingClientRect();
     const index = Math.floor(((event.clientX - box.left) * (width / box.width) - margin.left) / slot);
     if (index < 0 || index >= months.length) { tip.style.display = 'none'; return; }
-    tip.replaceChildren(el('div', { class: 'date', text: monthLabel(Date.parse(months[index] + '-01T00:00:00Z')) }));
-    for (const entry of [...visible].reverse()) if (entry.values[index]) tip.append(tipRow(entry.color, compact(entry.values[index]), entry.label));
-    tip.append(el('div', { class: 'row total' }, el('span'), el('span', { class: 'num', text: compact(totals[index]) }), el('span', { class: 'name', text: 'Total' })));
-    placeTip(tip, host, (event.clientX - box.left), event.clientY - box.top - 20);
+    tip.replaceChildren(el('div', { class: 'date', text: monthLabel(Date.parse(`${months[index]}-01T00:00:00Z`)) }));
+    for (const entry of [...visible].reverse()) if (entry.values[index]) tip.append(tipLine(entry.color, compact(entry.values[index]), entry.label));
+    placeTip(tip, host, event.clientX - box.left, event.clientY - box.top - 20);
   });
   svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; });
-  for (const entry of [...visible].reverse()) {
-    legend.append(el('span', { style: 'display:inline-flex;gap:6px;align-items:center;font-size:13px' }, el('span', { class: 'swatch', style: `background:${entry.color}` }), el('span', { text: entry.label }), el('span', { class: 'val', text: compact(entry.score) })));
-  }
-};
-
-const quarterEnd = cohort => {
-  const year = Number(cohort.slice(0, 4));
-  const quarter = Number(cohort.slice(5));
-  return Date.UTC(year, quarter * 3, 1);
+  for (const entry of [...visible].reverse()) legend.append(legendItem(entry.color, entry.label, compact(entry.score)));
 };
 
 const survivalCurves = () => {
-  const quarters = collect('quarter');
   const years = new Map();
-  for (const [cohort, values] of quarters) {
+  for (const [cohort, values] of view.quarters) {
     const startIndex = TIMES.findIndex(time => time >= quarterEnd(cohort));
     if (startIndex < 0) continue;
     const year = cohort.slice(0, 4);
     if (!years.has(year)) years.set(year, []);
-    years.get(year).push(values.slice(startIndex));
+    years.get(year).push(values.subarray(startIndex));
   }
   const curves = [];
   for (const [year, list] of [...years.entries()].sort()) {
@@ -662,37 +953,37 @@ const renderSurvival = () => {
   legend.replaceChildren();
   const curves = survivalCurves().slice(-10);
   if (!curves.length) {
-    host.append(el('div', { class: 'empty', text: 'Not enough lines to estimate survival.' }));
+    host.append(el('div', { class: 'empty', text: 'Not enough lines yet to measure how long code lasts.' }));
     return;
   }
   const steps = ramp();
   curves.forEach((curve, index) => { curve.color = steps[Math.round((curves.length > 1 ? index / (curves.length - 1) : 1) * (steps.length - 1))]; });
   const width = Math.max(host.clientWidth, 280);
   const height = 300;
-  const margin = { top: 10, right: 12, bottom: 26, left: 44 };
+  const margin = { top: 14, right: 8, bottom: 26, left: 40 };
   const plotW = width - margin.left - margin.right;
   const plotH = height - margin.top - margin.bottom;
   const maxAge = Math.max(...curves.map(curve => curve.points.length - 1));
   const xOf = age => margin.left + (maxAge ? age / maxAge : 0) * plotW;
   const yOf = value => margin.top + plotH - value / 100 * plotH;
-  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Code survival per year' });
+  const svg = svgEl('svg', { viewBox: `0 0 ${width} ${height}`, role: 'img', 'aria-label': 'Share of lines still present, by age and by year written' });
   for (const value of [0, 25, 50, 75, 100]) {
-    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 ? css('--axis') : css('--grid') }));
+    svg.append(svgEl('line', { x1: margin.left, x2: width - margin.right, y1: yOf(value), y2: yOf(value), stroke: value === 0 || value === 50 ? css('--axis') : css('--grid') }));
     const label = svgEl('text', { x: margin.left - 8, y: yOf(value) + 4, 'text-anchor': 'end' });
-    label.textContent = `${value} %`;
+    label.textContent = `${value}%`;
     svg.append(label);
   }
-  const yearWeeks = 365.25 / 7 / DATA.manifest.interval_weeks;
-  const years = maxAge / yearWeeks;
-  const tickEvery = years > 10 ? yearWeeks * 2 : years > 2 ? yearWeeks : yearWeeks / 4;
+  const perYear = 365.25 / 7 / DATA.manifest.interval_weeks;
+  const years = maxAge / perYear;
+  const tickEvery = years > 10 ? perYear * 2 : years > 2 ? perYear : perYear / 4;
   for (let age = 0; age <= maxAge; age += tickEvery) {
-    const label = svgEl('text', { x: xOf(age), y: height - 8, 'text-anchor': 'middle' });
-    label.textContent = tickEvery >= yearWeeks ? `${Math.round(age / yearWeeks)} y` : `${Math.round(age / yearWeeks * 12)} mo`;
+    const label = svgEl('text', { x: xOf(age), y: height - 6, 'text-anchor': 'middle' });
+    label.textContent = tickEvery >= perYear ? `${Math.round(age / perYear)}y` : `${Math.round(age / perYear * 12)}mo`;
     svg.append(label);
   }
   for (const curve of curves) {
     svg.append(svgEl('path', { d: `M${curve.points.map((value, age) => `${xOf(age).toFixed(1)},${yOf(value).toFixed(1)}`).join('L')}`, fill: 'none', stroke: curve.color, 'stroke-width': 2, 'stroke-linejoin': 'round', 'stroke-linecap': 'round' }));
-    legend.append(el('span', { style: 'display:inline-flex;gap:6px;align-items:center;font-size:13px' }, el('span', { class: 'swatch', style: `background:${curve.color}` }), el('span', { text: curve.year }), el('span', { class: 'val', text: percent(curve.points[curve.points.length - 1]) })));
+    legend.append(legendItem(curve.color, curve.year, percent(curve.points[curve.points.length - 1])));
   }
   const cross = svgEl('line', { y1: margin.top, y2: height - margin.bottom, stroke: css('--ink-2'), visibility: 'hidden' });
   svg.append(cross);
@@ -705,25 +996,30 @@ const renderSurvival = () => {
     cross.setAttribute('x1', xOf(age));
     cross.setAttribute('x2', xOf(age));
     cross.setAttribute('visibility', 'visible');
-    tip.replaceChildren(el('div', { class: 'date', text: `After ${(age / yearWeeks * 12).toLocaleString(LOCALE, { maximumFractionDigits: 0 })} months` }));
-    for (const curve of [...curves].reverse()) if (age < curve.points.length) tip.append(tipRow(curve.color, percent(curve.points[age]), curve.year));
+    tip.replaceChildren(el('div', { class: 'date', text: `After ${duration(age / perYear)}` }));
+    for (const curve of [...curves].reverse()) if (age < curve.points.length) tip.append(tipLine(curve.color, percent(curve.points[age]), curve.year));
     placeTip(tip, host, event.clientX - box.left, event.clientY - box.top - 20);
   });
   svg.addEventListener('pointerleave', () => { tip.style.display = 'none'; cross.setAttribute('visibility', 'hidden'); });
 };
 
-const peopleStats = start => {
+const peopleStats = () => {
+  const index = current();
   const stats = new Map();
   const entry = name => {
-    if (!stats.has(name)) stats.set(name, { name, lines: 0, delta: 0, commits: 0, periodCommits: 0, added: 0, deleted: 0, first: null, last: null, repos: new Map() });
+    if (!stats.has(name)) stats.set(name, { name, lines: 0, delta: 0, commits: 0, added: 0, deleted: 0, last: null, repos: new Map() });
     return stats.get(name);
   };
+  const startIndex = view.start;
   for (const row of DATA.series) {
     if (!repoAllowed(row[0]) || !kindAllowed(row[3]) || !state.types.has(DATA.people[row[1]].type)) continue;
     const points = row[5];
     let atStart = 0;
-    for (let i = 0; i < points.length && points[i] <= start; i += 2) atStart = points[i + 1];
-    const atEnd = points[points.length - 1];
+    let atEnd = 0;
+    for (let i = 0; i < points.length && points[i] <= index; i += 2) {
+      atEnd = points[i + 1];
+      if (points[i] <= startIndex) atStart = points[i + 1];
+    }
     if (!atEnd && !atStart) continue;
     const stat = entry(DATA.people[row[1]].name);
     stat.lines += atEnd;
@@ -731,15 +1027,13 @@ const peopleStats = start => {
     const repo = DATA.repos[row[0]].name;
     stat.repos.set(repo, (stat.repos.get(repo) || 0) + atEnd);
   }
-  const startMonth = DATA.dates[start].slice(0, 7);
+  const startMonth = DATA.dates[startIndex].slice(0, 7);
   const mask = kindMask();
   for (const row of DATA.commits) {
     if (!repoAllowed(row[0]) || !(row[3] & mask) || !state.types.has(DATA.people[row[1]].type)) continue;
     const stat = entry(DATA.people[row[1]].name);
     const month = DATA.months[row[2]];
-    stat.commits += row[4];
-    if (month >= startMonth) stat.periodCommits += row[4];
-    if (!stat.first || month < stat.first) stat.first = month;
+    if (month >= startMonth) stat.commits += row[4];
     if (!stat.last || month > stat.last) stat.last = month;
   }
   for (const row of DATA.activity) {
@@ -751,21 +1045,35 @@ const peopleStats = start => {
   return [...stats.values()];
 };
 
-const renderPeople = start => {
-  const rows = peopleStats(start);
+const sparkline = values => {
+  const svg = svgEl('svg', { class: 'spark', viewBox: '0 0 72 20', 'aria-hidden': 'true' });
+  if (!values) return svg;
+  const span = LAST - view.start;
+  const max = Math.max(1, ...values.subarray(view.start));
+  const count = Math.min(36, span + 1);
+  const points = [];
+  for (let k = 0; k < count; k++) {
+    const position = k / Math.max(count - 1, 1);
+    const i = view.start + Math.round(position * span);
+    points.push(`${(position * 72).toFixed(1)},${(19 - values[i] / max * 17).toFixed(1)}`);
+  }
+  svg.append(svgEl('path', { d: `M${points.join('L')}`, fill: 'none', stroke: css('--ink-2'), 'stroke-width': 1.5, 'stroke-linejoin': 'round' }));
+  return svg;
+};
+
+const renderPeople = () => {
+  const rows = peopleStats();
   const totalLines = rows.reduce((sum, row) => sum + row.lines, 0);
   const columns = [
     ['name', 'Person', row => row.name],
     ['lines', 'Lines', row => row.lines],
-    ['share', 'Share', row => totalLines ? row.lines / totalLines : 0],
+    ['share', 'Share', row => (totalLines ? row.lines / totalLines : 0)],
     ['delta', 'Change', row => row.delta],
-    ['periodCommits', 'Commits', row => row.periodCommits],
-    ['commits', 'Commits (total)', row => row.commits],
+    ['commits', 'Commits', row => row.commits],
     ['added', 'Added', row => row.added],
     ['deleted', 'Deleted', row => row.deleted],
-    ['retention', 'Retention', row => row.added >= 200 ? row.lines / row.added : -1],
-    ['first', 'First', row => row.first || ''],
-    ['last', 'Last', row => row.last || ''],
+    ['retention', 'Retention', row => (row.added >= 200 ? row.lines / row.added : -1)],
+    ['last', 'Last active', row => row.last || ''],
   ];
   const column = columns.find(c => c[0] === state.sort) || columns[1];
   rows.sort((a, b) => {
@@ -773,140 +1081,318 @@ const renderPeople = start => {
     const y = column[2](b);
     return (x > y ? 1 : x < y ? -1 : a.name.localeCompare(b.name)) * state.sortDir;
   });
+  const needle = state.query.trim().toLowerCase();
+  const matched = needle ? rows.filter(row => row.name.toLowerCase().includes(needle)) : rows;
+  const shown = matched.slice(0, state.limit);
+  document.getElementById('peopleCount').textContent = `${integer.format(matched.length)} ${matched.length === 1 ? 'person' : 'people'}`;
+  const sortBy = key => { state.sortDir = state.sort === key ? -state.sortDir : -1; state.sort = key; renderPeople(); };
   const table = el('table');
-  table.append(el('thead', {}, el('tr', {}, ...columns.map(([key, label]) => el('th', {
-    tabindex: 0,
-    text: label + (state.sort === key ? (state.sortDir < 0 ? ' ↓' : ' ↑') : ''),
-    onclick: () => { state.sortDir = state.sort === key ? -state.sortDir : -1; state.sort = key; render(); },
-    onkeydown: event => { if (event.key === 'Enter') { state.sortDir = state.sort === key ? -state.sortDir : -1; state.sort = key; render(); } },
-  })), el('th', { class: 'text', text: 'Main repositories' }))));
+  table.append(el('thead', {}, el('tr', {}, ...columns.map(([key, label]) => el('th', { 'aria-sort': state.sort === key ? (state.sortDir < 0 ? 'descending' : 'ascending') : 'none' }, el('button', { text: label + (state.sort === key ? (state.sortDir < 0 ? ' ↓' : ' ↑') : ''), onclick: () => sortBy(key) }))), el('th', { class: 'text', text: 'Main repositories' }))));
   const body = el('tbody');
-  for (const row of rows) {
-    const person = DATA.people.find(p => p.name === row.name);
-    const tag = TYPE_TAG[person.type];
-    const toggle = () => { state.person = state.person === row.name ? ALL : row.name; state.isolate = null; render(); };
-    const repos = [...row.repos.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => `${e[0]} ${compact(e[1])}`).join(' · ');
+  for (const row of shown) {
+    const tag = TYPE_TAG[PERSON_TYPE.get(row.name)];
+    const toggle = () => { state.person = state.person === row.name ? ALL : row.name; state.isolate = null; state.limit = 40; render(); };
+    const repos = [...row.repos.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 3).map(e => `${e[0]} ${compact(e[1])}`).join(', ');
     body.append(el('tr', { class: state.person === row.name ? 'selected' : '', tabindex: 0, onclick: toggle, onkeydown: event => { if (event.key === 'Enter') toggle(); } },
-      el('td', {}, document.createTextNode(row.name), ...(tag ? [el('span', { class: 'tag', text: tag })] : [])),
+      el('td', {}, el('div', { class: 'person' }, sparkline(view.people.get(row.name)), el('span', {}, document.createTextNode(row.name), ...(tag ? [el('span', { class: 'tag', text: tag })] : [])))),
       el('td', { text: integer.format(row.lines) }),
       el('td', { text: percent(totalLines ? row.lines / totalLines * 100 : 0) }),
       el('td', { text: signed(row.delta) }),
-      el('td', { text: integer.format(row.periodCommits) }),
       el('td', { text: integer.format(row.commits) }),
       el('td', { text: compact(row.added) }),
       el('td', { text: compact(row.deleted) }),
-      el('td', { text: row.added >= 200 ? percent(row.lines / row.added * 100) : '–' }),
-      el('td', { text: row.first || '–' }),
-      el('td', { text: row.last || '–' }),
+      el('td', { text: row.added >= 200 ? percent(row.lines / row.added * 100) : 'n/a' }),
+      el('td', { text: row.last || 'n/a' }),
       el('td', { class: 'text', text: repos }),
     ));
   }
   table.append(body);
   document.getElementById('people').replaceChildren(table);
+  const more = document.getElementById('more');
+  more.hidden = matched.length <= shown.length;
+  more.textContent = `Show ${integer.format(Math.min(100, matched.length - shown.length))} more`;
 };
 
-const renderKpis = (range) => {
-  const total = range.totalAt(LAST);
-  const before = range.totalAt(range.start);
-  const startMonth = DATA.dates[range.start].slice(0, 7);
-  let commits = 0;
-  const humans = new Set();
-  for (const row of commitRows()) {
-    if (DATA.months[row[2]] < startMonth) continue;
-    commits += row[4];
-    if (DATA.people[row[1]].type === 'human') humans.add(row[1]);
+const renderMainTable = () => {
+  const samples = [];
+  for (let i = view.start; i <= LAST; i++) {
+    const date = new Date(TIMES[i]);
+    if (i === LAST || (date.getUTCMonth() % 3 === 0 && date.getUTCDate() <= 7 * DATA.manifest.interval_weeks)) samples.push(i);
   }
-  const tile = (label, value, delta, hero) => el('div', { class: hero ? 'kpi hero' : 'kpi' }, el('div', { class: 'value', text: value }), el('div', { class: 'label', text: label }), ...(delta ? [el('div', { class: 'delta', text: delta })] : []));
-  document.getElementById('kpis').replaceChildren(
-    tile('surviving lines', compact(total), `${signed(total - before)} over the period`, true),
-    tile('commits over the period', integer.format(commits)),
-    tile('active developers', integer.format(humans.size)),
-  );
+  const shown = samples.slice(-12);
+  const table = el('table');
+  table.append(el('thead', {}, el('tr', {}, el('th', { text: 'Series' }), ...shown.map(i => el('th', { text: longDate(TIMES[i]) })))));
+  const body = el('tbody');
+  for (const entry of [...view.all].reverse()) {
+    body.append(el('tr', { style: 'cursor:default' }, el('td', { text: entry.label }), ...shown.map(i => el('td', { text: integer.format(entry.values[i]) }))));
+  }
+  table.append(body);
+  document.getElementById('mainTable').replaceChildren(table);
 };
 
-const renderHeader = range => {
-  const repo = state.repo !== ALL ? state.repo : state.scope === ALL ? DATA.title : state.scope;
-  const person = state.person !== ALL ? ` · ${state.person}` : '';
-  document.getElementById('title').textContent = `${repo} · Code ownership${person}`;
-  const dimLabel = { person: 'developer', cohort: 'year written', language: 'language', repo: 'repository' }[state.dim];
-  document.getElementById('subtitle').textContent = `Surviving lines per ${dimLabel} · ${longDate(TIMES[range.start])} – ${longDate(TIMES[LAST])}`;
+const renderFindings = () => {
+  const host = document.getElementById('findings');
+  host.replaceChildren(...findings().map(item => el('li', {}, el('button', { onclick: item.go }, el('span', { class: 'say', text: item.say }), ...(item.why ? [el('span', { class: 'why', text: item.why })] : [])))));
+  host.parentElement.hidden = !host.children.length;
 };
 
-const segmented = (id, options, isOn, onPick) => {
-  const host = document.getElementById(id);
-  host.replaceChildren(...options.map(([key, label]) => el('button', { 'aria-pressed': String(isOn(key)), text: label, onclick: () => onPick(key) })));
-};
-const selectBox = (id, options, value, onPick) => {
-  const host = document.getElementById(id);
-  host.replaceChildren(...options.map(([key, label]) => el('option', { value: key, text: label })));
-  host.value = value;
-  host.onchange = () => onPick(host.value);
+const selectIn = (options, value, label, onPick) => {
+  const select = el('select', { 'aria-label': label });
+  for (const option of options) {
+    if (Array.isArray(option[1])) {
+      const group = el('optgroup', { label: option[0] });
+      for (const [key, text] of option[1]) group.append(el('option', { value: key, text }));
+      select.append(group);
+    } else {
+      select.append(el('option', { value: option[0], text: option[1] }));
+    }
+  }
+  select.value = value;
+  select.addEventListener('change', () => onPick(select.value));
+  return select;
 };
 
-const renderControls = () => {
-  selectBox('period', [['all', 'All history'], ...(HAS_MODELS ? [['claude4', 'Since Claude 4']] : []), ['36', '36 months'], ['24', '24 months'], ['12', '12 months'], ['6', '6 months'], ['3', '3 months']], state.period, value => { state.period = value; render(); });
-  segmented('scope', [[ALL, 'All'], ...GROUPS.map(group => [group, group])], key => state.scope === key, key => { state.scope = key; state.repo = ALL; state.isolate = null; render(); });
-  const repos = DATA.repos.filter(r => state.scope === ALL || r.group === state.scope).map(r => [r.name, r.name]);
-  selectBox('repo', [[ALL, 'All'], ...repos], state.repo, value => { state.repo = value; state.isolate = null; render(); });
+const fitSelects = host => {
+  const probe = el('span', { style: 'position:absolute;visibility:hidden;white-space:pre;font-weight:600' });
+  host.append(probe);
+  for (const select of host.querySelectorAll('select')) {
+    probe.textContent = select.options[select.selectedIndex]?.text || '';
+    select.style.width = `${Math.ceil(probe.getBoundingClientRect().width) + 17}px`;
+  }
+  probe.remove();
+};
+
+const renderQuery = () => {
+  const host = document.getElementById('query');
+  const repoOptions = [];
+  if (GROUPS.length > 1) repoOptions.push(['Groups', GROUPS.map(group => [`group:${group}`, group])]);
+  repoOptions.push(['Repositories', DATA.repos.map(repo => [`repo:${repo.name}`, repo.name])]);
   const totals = new Map();
   for (const row of DATA.series) {
     if (!repoAllowed(row[0]) || !kindAllowed(row[3])) continue;
     totals.set(row[1], (totals.get(row[1]) || 0) + row[5][row[5].length - 1]);
   }
-  const people = [...totals.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).map(e => [DATA.people[e[0]].name, DATA.people[e[0]].name]);
+  const people = [...totals.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 300).map(e => [DATA.people[e[0]].name, DATA.people[e[0]].name]);
   if (state.person !== ALL && !people.some(p => p[0] === state.person)) people.unshift([state.person, state.person]);
-  selectBox('person', [[ALL, 'Everyone'], ...people], state.person, value => { state.person = value; state.isolate = null; render(); });
-  segmented('dim', DIMS, key => state.dim === key, key => { state.dim = key; state.isolate = null; render(); });
-  segmented('unit', [['lines', 'Lines'], ['share', 'Share']], key => state.unit === key, key => { state.unit = key; render(); });
-  segmented('kinds', DATA.kinds.map(k => [k.key, k.label]), key => state.kinds.has(key), key => { state.kinds.has(key) ? state.kinds.delete(key) : state.kinds.add(key); render(); });
-  segmented('types', TYPES, key => state.types.has(key), key => { state.types.has(key) ? state.types.delete(key) : state.types.add(key); render(); });
-  segmented('metric', [['added', 'Added'], ['deleted', 'Deleted'], ['commits', 'Commits']], key => state.metric === key, key => { state.metric = key; render(); });
-  const theme = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-  document.getElementById('toggles').replaceChildren(
-    el('button', { 'aria-pressed': String(state.events), text: 'Events', onclick: () => { state.events = !state.events; render(); } }),
-    el('button', { 'aria-pressed': 'false', text: theme === 'dark' ? 'Light theme' : 'Dark theme', onclick: () => { document.documentElement.dataset.theme = theme === 'dark' ? 'light' : 'dark'; render(); } }),
+  const periods = [['all', 'over all history'], ...(HAS_MODELS ? [['claude4', 'since Claude 4']] : []), ['60', 'over 5 years'], ['24', 'over 2 years'], ['12', 'over 1 year'], ['6', 'over 6 months']];
+  const refresh = () => { state.isolate = null; state.limit = 40; render(); };
+  host.replaceChildren(
+    document.createTextNode('Show '),
+    selectIn([['lines', 'lines alive'], ['share', 'the share of lines']], state.unit, 'What to show', value => { state.unit = value; render(); }),
+    document.createTextNode(' by '),
+    selectIn(DIMS, state.dim, 'Split by', value => { state.dim = value; refresh(); }),
+    document.createTextNode(' in '),
+    selectIn([[ALL, DATA.repos.length > 1 ? 'all repositories' : DATA.repos[0].name], ...(DATA.repos.length > 1 ? repoOptions : [])], state.scope, 'Repositories', value => { state.scope = value; refresh(); }),
+    document.createTextNode(' '),
+    selectIn(periods, state.period, 'Period', value => { state.period = value; render(); }),
+    document.createTextNode(', written by '),
+    selectIn([[ALL, 'everyone'], ...people], state.person, 'Person', value => { state.person = value; refresh(); }),
+    document.createTextNode('. '),
+    el('span', { class: 'refine' }, el('button', { 'aria-expanded': String(state.refine), 'aria-controls': 'options', text: state.refine ? 'Fewer options' : 'More options', onclick: () => { state.refine = !state.refine; renderQuery(); renderOptions(); } })),
+  );
+  fitSelects(host);
+};
+
+const renderOptions = () => {
+  const host = document.getElementById('options');
+  host.hidden = !state.refine;
+  const box = (label, checked, onChange) => {
+    const input = el('input', { type: 'checkbox', onchange: event => onChange(event.target.checked) });
+    input.checked = checked;
+    return el('label', {}, input, document.createTextNode(label));
+  };
+  const toggle = (target, key) => on => { if (on) target.add(key); else target.delete(key); render(); };
+  host.replaceChildren(
+    el('fieldset', {}, el('legend', { text: 'Content' }), ...DATA.kinds.map(kind => box(kind.label, state.kinds.has(kind.key), toggle(state.kinds, kind.key)))),
+    el('fieldset', {}, el('legend', { text: 'Authors' }), ...TYPES.map(([key, label]) => box(label, state.types.has(key), toggle(state.types, key)))),
+    el('fieldset', {}, el('legend', { text: 'Timeline' }), box('Show events', state.events, on => { state.events = on; render(); })),
   );
 };
 
 const renderMethod = () => {
   const manifest = DATA.manifest;
-  const options = manifest.blame_options.join(' ');
   const items = [
-    `Every ${manifest.interval_weeks === 1 ? 'week' : `${manifest.interval_weeks} weeks`}, one commit is taken from the default branch of each repository (first-parent history, Monday 00:00 UTC), and each file changed since the previous sample goes through git blame ${options}: a line belongs to the author of the commit that wrote it.`,
+    `Every ${manifest.interval_weeks === 1 ? 'week' : `${manifest.interval_weeks} weeks`}, one commit is taken from the main history of each repository, and each file changed since the previous sample goes through git blame ${manifest.blame_options.join(' ')}. A line belongs to the author of the commit that wrote it.`,
     'The main chart counts what is still alive at each date, not what was written. Monthly activity counts everything written, including code replaced since.',
-    'Lockfiles, vendored, generated and binary files are not counted. Run `git-planks audit` to see what is, and adjust planks.toml.',
-    'Code arrives on the curve when it lands on the default branch: a long-lived branch or an imported history shows as a step.',
-    'A line that is reformatted or moved between files can change author, and a commit written with an AI stays under the name of whoever pushed it. These curves describe code, not the value of a person: reviews, architecture and removed complexity barely show.',
-    ...(HAS_MODELS ? ['Model release dates come from public sources and are shown as context only: they do not establish any cause.'] : []),
-    `Reproducible: the same commits, configuration and git version give this file byte for byte. Cut-off ${manifest.until}, git-planks ${manifest.tool_version}, ${manifest.git}. Check it with \`git-planks verify\`.`,
+    'Lockfiles, vendored, generated and binary files are not counted. Run git-planks audit to see what is, and adjust planks.toml.',
+    'Code arrives on the curve when it lands on the main branch: a long-lived branch or an imported history shows as a step.',
+    'A line that is reformatted or moved between files can change author, and a commit written with an AI stays under the name of whoever pushed it. Reviews, architecture and removed complexity barely show.',
+    ...(HAS_MODELS ? ['AI model release dates are shown as context. They do not establish any cause.'] : []),
+    `Reproducible: the same commits, configuration and git version give this file byte for byte. Cut-off ${manifest.until}, git-planks ${manifest.tool_version}, ${manifest.git}. Check it with git-planks verify.`,
     ...(manifest.skipped.length ? [`Skipped: ${manifest.skipped.join(', ')}.`] : []),
   ];
   const commits = Object.entries(manifest.commits).map(([name, sha]) => el('li', {}, document.createTextNode(`${name} `), el('code', { text: sha })));
   document.getElementById('method').replaceChildren(el('ul', {}, ...items.map(text => el('li', { text }))), el('div', { text: 'Commits analyzed' }), el('ul', {}, ...commits));
 };
 
-const render = () => {
-  renderControls();
-  const range = renderMain();
-  renderHeader(range);
-  renderKpis(range);
-  renderActivity(range.start);
-  renderSurvival();
-  renderPeople(range.start);
+const encodeHash = () => {
+  const initial = defaults();
+  const params = new URLSearchParams();
+  if (state.dim !== initial.dim) params.set('by', state.dim);
+  if (state.unit !== initial.unit) params.set('unit', state.unit);
+  if (state.period !== initial.period) params.set('period', state.period);
+  if (state.scope !== ALL) params.set('in', state.scope);
+  if (state.person !== ALL) params.set('person', state.person);
+  if (state.isolate) params.set('only', state.isolate);
+  if (state.pinned && state.date !== null) params.set('date', DATA.dates[state.date]);
+  const list = set => [...set].sort().join(',');
+  if (list(state.kinds) !== list(initial.kinds)) params.set('content', list(state.kinds));
+  if (list(state.types) !== list(initial.types)) params.set('authors', list(state.types));
+  if (!state.events) params.set('events', 'off');
+  return params.toString();
+};
+const syncHash = () => {
+  const encoded = encodeHash();
+  history.replaceState(null, '', encoded ? `#${encoded}` : location.pathname + location.search);
+};
+const readHash = () => {
+  const params = new URLSearchParams(location.hash.slice(1));
+  const known = (value, allowed) => (allowed.includes(value) ? value : null);
+  state.dim = known(params.get('by'), DIMS.map(d => d[0])) || state.dim;
+  state.unit = known(params.get('unit'), ['lines', 'share']) || state.unit;
+  state.period = known(params.get('period'), ['all', 'claude4', '60', '24', '12', '6']) || state.period;
+  const scope = params.get('in');
+  if (scope && (scope.startsWith('group:') ? GROUPS.includes(scope.slice(6)) : REPO_INDEX.has(scope.slice(5)))) state.scope = scope;
+  const person = params.get('person');
+  if (person && PERSON_TYPE.has(person)) state.person = person;
+  state.isolate = params.get('only');
+  const date = DATA.dates.indexOf(params.get('date'));
+  if (date >= 0) { state.date = date; state.pinned = true; }
+  if (params.has('content')) state.kinds = new Set(params.get('content').split(',').filter(key => DATA.kinds.some(k => k.key === key)));
+  if (params.has('authors')) state.types = new Set(params.get('authors').split(',').filter(key => TYPES.some(t => t[0] === key)));
+  if (params.get('events') === 'off') state.events = false;
 };
 
+const resolvedTheme = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+const clearRank = () => { rankRows.forEach(row => row.node.remove()); rankRows.clear(); };
+
+const saveImage = () => {
+  if (!chart.svg) return;
+  const button = document.getElementById('save');
+  const clone = chart.svg.cloneNode(true);
+  const head = 62;
+  const box = chart.svg.viewBox.baseVal;
+  const width = box.width;
+  const height = box.height + head;
+  const out = svgEl('svg', { xmlns: SVG, viewBox: `0 0 ${width} ${height}`, width: width * 2, height: height * 2 });
+  const font = '"Avenir Next", "Segoe UI", system-ui, sans-serif';
+  out.append(svgEl('rect', { width, height, fill: css('--page') }));
+  const title = svgEl('text', { x: 12, y: 26, 'font-family': font, 'font-size': 18, 'font-weight': 600, fill: css('--ink') });
+  title.textContent = `${subjectName()}: ${compact(view.total[current()])} lines alive on ${longDate(TIMES[current()])}`;
+  out.append(title);
+  let x = 12;
+  for (const entry of [...view.all].reverse()) {
+    const text = `${entry.label} ${compact(entry.values[current()])}`;
+    const room = text.length * 6.4 + 26;
+    if (x + room > width) break;
+    out.append(svgEl('rect', { x, y: 40, width: 10, height: 10, rx: 2, fill: entry.color }));
+    const label = svgEl('text', { x: x + 15, y: 49, 'font-family': font, 'font-size': 12, fill: css('--ink-2') });
+    label.textContent = text;
+    out.append(label);
+    x += room;
+  }
+  clone.setAttribute('x', 0);
+  clone.setAttribute('y', head);
+  clone.setAttribute('width', width);
+  clone.setAttribute('height', box.height);
+  for (const text of clone.querySelectorAll('text')) {
+    const event = text.classList.contains('event');
+    text.setAttribute('font-family', font);
+    text.setAttribute('font-size', event ? 11 : 12);
+    text.setAttribute('fill', event ? css('--ink-2') : css('--muted'));
+  }
+  out.append(clone);
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(out)], { type: 'image/svg+xml' }));
+  const image = new Image();
+  image.onload = () => {
+    const canvas = el('canvas', { width: width * 2, height: height * 2 });
+    canvas.getContext('2d').drawImage(image, 0, 0);
+    URL.revokeObjectURL(url);
+    canvas.toBlob(blob => {
+      const link = el('a', { href: URL.createObjectURL(blob), download: `${scopeLabel().replace(/[^\w.-]+/g, '-')}-code-ownership.png` });
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      button.textContent = 'Image saved';
+      setTimeout(() => { button.textContent = 'Save image'; }, 1600);
+    });
+  };
+  image.src = url;
+};
+
+const render = () => {
+  stopPlayer();
+  compute();
+  renderQuery();
+  renderOptions();
+  renderChart();
+  update();
+  renderFindings();
+  renderActivity();
+  renderSurvival();
+  renderPeople();
+  renderMainTable();
+  document.getElementById('theme').textContent = resolvedTheme() === 'dark' ? 'Light theme' : 'Dark theme';
+  syncHash();
+  document.title = `${scopeLabel()}: code ownership - git-planks`;
+};
+
+document.getElementById('brand').textContent = `${DATA.title} code ownership`;
+document.getElementById('play').textContent = 'Play history';
+document.getElementById('play').addEventListener('click', playHistory);
+document.getElementById('save').addEventListener('click', saveImage);
+document.getElementById('share').addEventListener('click', async event => {
+  syncHash();
+  const button = event.currentTarget;
+  try {
+    await navigator.clipboard.writeText(location.href);
+    button.textContent = 'Link copied';
+  } catch {
+    button.textContent = 'Copy it from the address bar';
+  }
+  setTimeout(() => { button.textContent = 'Copy link'; }, 1800);
+});
+document.getElementById('theme').addEventListener('click', () => {
+  document.documentElement.dataset.theme = resolvedTheme() === 'dark' ? 'light' : 'dark';
+  try { localStorage.setItem(THEME_KEY, document.documentElement.dataset.theme); } catch { /* A page without storage keeps the choice until it closes. */ }
+  clearRank();
+  render();
+});
+document.getElementById('search').addEventListener('input', event => { state.query = event.target.value; state.limit = 40; renderPeople(); });
+document.getElementById('more').addEventListener('click', () => { state.limit += 100; renderPeople(); });
+window.addEventListener('hashchange', () => {
+  if (`#${encodeHash()}` === location.hash) return;
+  Object.assign(state, defaults());
+  readHash();
+  clearRank();
+  render();
+});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { clearRank(); render(); });
+try {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) document.documentElement.dataset.theme = saved;
+} catch { /* A page without storage follows the system theme. */ }
+
+readHash();
 renderMethod();
 render();
-let resizeFrame = 0;
+if (!REDUCED && !location.hash && chart.svg) {
+  const started = performance.now();
+  chart.clipRect.setAttribute('width', chart.margin.left);
+  const reveal = now => {
+    const progress = Math.min(1, (now - started) / 900);
+    if (!player.running) chart.clipRect.setAttribute('width', chart.margin.left + (1 - (1 - progress) ** 3) * (chart.width - chart.margin.left));
+    if (progress < 1 && !player.running) requestAnimationFrame(reveal);
+  };
+  requestAnimationFrame(reveal);
+}
 let lastWidth = document.getElementById('main').clientWidth;
 new ResizeObserver(() => {
   const width = document.getElementById('main').clientWidth;
-  if (width === lastWidth) return;
-  lastWidth = width;
-  cancelAnimationFrame(resizeFrame);
-  resizeFrame = requestAnimationFrame(render);
+  if (width !== lastWidth) {
+    lastWidth = width;
+    render();
+  }
 }).observe(document.getElementById('main'));
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', render);
 </script>
 </body>
 </html>
