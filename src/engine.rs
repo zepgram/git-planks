@@ -14,8 +14,12 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::{self, File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, IsTerminal, Write};
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 
 const MODEL_EVENTS: &str = include_str!("../assets/model-events.json");
+/// Slices of first-parent history whose activity is read in parallel: together they hold every
+/// commit reachable from the sampled one, each exactly once.
+const ACTIVITY_SLICES: usize = 64;
 const EMPTY_TREE_SHA1: &str = "4b825dc642cb6eb9a060e54bf8d69288fbee4904";
 const EMPTY_TREE_SHA256: &str = "6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321";
 
@@ -160,31 +164,163 @@ pub fn pick_samples(chain: &[(String, i64)], dates: &[i64]) -> Vec<Option<String
     picks
 }
 
-fn parse_blame(output: &str) -> Blame {
-    let mut counts = Blame::new();
-    for line in output.split('\n') {
-        let mut tokens = line.split(' ');
-        if let (Some(sha), Some(_), Some(_), Some(lines), None) = (
-            tokens.next(),
-            tokens.next(),
-            tokens.next(),
-            tokens.next(),
-            tokens.next(),
-        ) && (sha.len() == 40 || sha.len() == 64)
-            && sha.bytes().all(|byte| byte.is_ascii_hexdigit())
-            && let Ok(lines) = lines.parse::<u64>()
-        {
-            *counts.entry(sha.to_string()).or_default() += lines;
-        }
-    }
-    counts
+struct Hunk {
+    sha: String,
+    source_line: usize,
+    line: usize,
+    count: usize,
+    file: String,
 }
 
-fn blame(mirror: &Path, commit: &str, path: &str, options: &[String]) -> Result<Blame> {
+struct RawBlame {
+    hunks: Vec<Hunk>,
+    boundaries: BTreeSet<String>,
+}
+
+/// Reads hunk headers and the keys that matter from `git blame --incremental`: a header only
+/// follows the `filename` line that closes the previous hunk.
+fn parse_blame(output: &str) -> RawBlame {
+    let mut hunks = Vec::new();
+    let mut boundaries = BTreeSet::new();
+    let mut open: Option<(String, usize, usize, usize)> = None;
+    for line in output.split('\n') {
+        match &open {
+            None => {
+                let mut tokens = line.split(' ');
+                if let (Some(sha), Some(source_line), Some(line), Some(count), None) = (
+                    tokens.next(),
+                    tokens.next(),
+                    tokens.next(),
+                    tokens.next(),
+                    tokens.next(),
+                ) && is_object_id(sha)
+                    && let (Ok(source_line), Ok(line), Ok(count)) =
+                        (source_line.parse(), line.parse(), count.parse())
+                    && source_line > 0
+                    && line > 0
+                {
+                    open = Some((sha.to_string(), source_line, line, count));
+                }
+            }
+            Some((sha, ..)) => {
+                if line == "boundary" {
+                    boundaries.insert(sha.clone());
+                } else if let Some(file) = line.strip_prefix("filename ")
+                    && let Some((sha, source_line, line, count)) = open.take()
+                {
+                    hunks.push(Hunk {
+                        sha,
+                        source_line,
+                        line,
+                        count,
+                        file: unquoted(file),
+                    });
+                }
+            }
+        }
+    }
+    RawBlame { hunks, boundaries }
+}
+
+/// Blames `path` at `commit`. With `since`, history stops there and the lines that were already
+/// present come back as boundary hunks of `since`, to be read from its known attribution.
+fn blame(
+    mirror: &Path,
+    commit: &str,
+    since: Option<&str>,
+    path: &str,
+    options: &[String],
+) -> Result<RawBlame> {
+    let stop = since.map(|since| format!("^{since}"));
     let mut args: Vec<&str> = vec!["blame", "--incremental"];
     args.extend(options.iter().map(String::as_str));
-    args.extend([commit, "--", path]);
+    args.push(commit);
+    args.extend(stop.as_deref());
+    args.extend(["--", path]);
     Ok(parse_blame(&git::read(Some(mirror), &args)?))
+}
+
+/// Paths any commit of `since..commit` touched, side branches included. A file back to the same
+/// content can still change owners there, so its known lines no longer stand for a fresh blame.
+fn touched_between(mirror: &Path, since: &str, commit: &str) -> Result<BTreeSet<String>> {
+    let range = format!("{since}..{commit}");
+    let output = git::read(
+        Some(mirror),
+        &[
+            "log",
+            "--format=",
+            "--name-only",
+            "--no-renames",
+            "-z",
+            &range,
+        ],
+    )?;
+    Ok(output
+        .split('\0')
+        .map(|path| path.trim_matches('\n'))
+        .filter(|path| !path.is_empty())
+        .map(ToString::to_string)
+        .collect())
+}
+
+#[derive(Default)]
+struct Names {
+    ids: HashMap<String, u32>,
+    shas: Vec<String>,
+}
+
+impl Names {
+    fn id(&mut self, sha: &str) -> u32 {
+        if let Some(id) = self.ids.get(sha) {
+            return *id;
+        }
+        let id = self.shas.len() as u32;
+        self.shas.push(sha.to_string());
+        self.ids.insert(sha.to_string(), id);
+        id
+    }
+}
+
+/// The commit of every line, in file order. `None` when a boundary hunk cannot be read from the
+/// lines known at `since`: a merge reached an older commit, or the source file was never blamed.
+fn line_owners(
+    raw: &RawBlame,
+    since: Option<&str>,
+    known: &HashMap<String, Vec<u32>>,
+    names: &Mutex<Names>,
+) -> Option<Vec<u32>> {
+    let total = raw
+        .hunks
+        .iter()
+        .map(|hunk| hunk.line + hunk.count - 1)
+        .max()
+        .unwrap_or(0);
+    let mut owners = vec![u32::MAX; total];
+    for hunk in &raw.hunks {
+        let target = owners.get_mut(hunk.line - 1..hunk.line - 1 + hunk.count)?;
+        match since {
+            Some(since) if raw.boundaries.contains(&hunk.sha) => {
+                if hunk.sha != since {
+                    return None;
+                }
+                let start = hunk.source_line - 1;
+                target.copy_from_slice(known.get(&hunk.file)?.get(start..start + hunk.count)?);
+            }
+            _ => target.fill(names.lock().ok()?.id(&hunk.sha)),
+        }
+    }
+    (!owners.contains(&u32::MAX)).then_some(owners)
+}
+
+fn histogram(owners: &[u32], names: &Names) -> Blame {
+    let mut counts: HashMap<u32, u64> = HashMap::new();
+    for owner in owners {
+        *counts.entry(*owner).or_default() += 1;
+    }
+    counts
+        .into_iter()
+        .map(|(id, lines)| (names.shas[id as usize].clone(), lines))
+        .collect()
 }
 
 pub fn list_files(
@@ -321,6 +457,8 @@ fn walk(
     let mut totals: BTreeMap<CubeKey, i64> = BTreeMap::new();
     let mut series: BTreeMap<CubeKey, Vec<i64>> = BTreeMap::new();
     let mut previous: Option<&str> = None;
+    let mut names = Names::default();
+    let mut known: HashMap<String, Vec<u32>> = HashMap::new();
     let interactive = std::io::stderr().is_terminal();
     let mut blamed = 0;
     for (index, pick) in picks.iter().enumerate() {
@@ -330,7 +468,7 @@ fn walk(
         if previous == Some(commit) {
             continue;
         }
-        previous = Some(commit);
+        let since = previous.replace(commit);
         let files = list_files(run.mirror, commit, run.name, rules)?;
         let changed: Vec<&String> = files
             .iter()
@@ -346,12 +484,29 @@ fn walk(
             })
             .copied()
             .collect();
-        let results: Vec<Result<Blame>> = missing
+        let shared = Mutex::new(std::mem::take(&mut names));
+        let owners: Vec<Result<Vec<u32>>> = missing
             .par_iter()
-            .map(|path| blame(run.mirror, commit, path, run.options))
+            .map(|path| {
+                let quick = blame(run.mirror, commit, since, path, run.options)?;
+                if let Some(found) = line_owners(&quick, since, &known, &shared) {
+                    return Ok(found);
+                }
+                let full = blame(run.mirror, commit, None, path, run.options)?;
+                line_owners(&full, None, &known, &shared)
+                    .ok_or_else(|| anyhow!("blame of {path} left lines without a commit"))
+            })
             .collect();
-        for (path, result) in missing.iter().zip(results) {
-            cache.store(commit, path, result?)?;
+        names = shared
+            .into_inner()
+            .map_err(|_| anyhow!("a blame worker panicked"))?;
+        for path in &changed {
+            known.remove(*path);
+        }
+        for (path, found) in missing.iter().zip(owners) {
+            let found = found?;
+            cache.store(commit, path, histogram(&found, &names))?;
+            known.insert((*path).clone(), found);
         }
         if let Some(writer) = &mut cache.writer {
             writer.flush()?;
@@ -363,6 +518,16 @@ fn walk(
             .filter(|path| !files.contains_key(*path))
             .cloned()
             .collect();
+        for path in &removed {
+            known.remove(path);
+        }
+        if let Some(since) = since {
+            for path in touched_between(run.mirror, since, commit)? {
+                if !changed.contains(&&path) {
+                    known.remove(&path);
+                }
+            }
+        }
         for path in removed.iter().chain(changed.iter().copied()) {
             if let Some((_, cube)) = state.remove(path) {
                 for (key, lines) in cube {
@@ -464,17 +629,23 @@ fn read_activity(
     rules: &mut PathRules,
     attribution: &mut Attribution,
 ) -> Result<(LineCounts, CommitCounts)> {
-    let output = git::read(
-        Some(run.mirror),
-        &[
-            "log",
-            "--no-merges",
-            "--numstat",
-            "-M",
-            "--format=@%H",
-            sampled,
-        ],
-    )?;
+    let chain = first_parent_chain(run.mirror, sampled)?;
+    let step = chain.len().div_ceil(ACTIVITY_SLICES).max(1);
+    let edges: Vec<&str> = chain
+        .iter()
+        .step_by(step)
+        .map(|(sha, _)| sha.as_str())
+        .collect();
+    let outputs: Vec<Result<String>> = edges
+        .par_iter()
+        .enumerate()
+        .map(|(index, tip)| {
+            let stop = edges.get(index + 1).map(|older| format!("^{older}"));
+            let mut args = vec!["log", "--no-merges", "--numstat", "-M", "--format=@%H", tip];
+            args.extend(stop.as_deref());
+            git::read(Some(run.mirror), &args)
+        })
+        .collect();
     let mut lines = LineCounts::new();
     let mut commits = CommitCounts::new();
     let mut current: Option<(String, String)> = None;
@@ -488,7 +659,12 @@ fn read_activity(
                 .or_default() += 1;
         }
     };
-    for line in output.split('\n') {
+    for line in outputs
+        .into_iter()
+        .collect::<Result<Vec<_>>>()?
+        .iter()
+        .flat_map(|output| output.split('\n'))
+    {
         if let Some(sha) = line.strip_prefix('@') {
             close(&current, mask);
             mask = 0;
@@ -828,18 +1004,85 @@ mod tests {
     use super::*;
 
     #[test]
-    fn reads_only_hunk_headers_from_incremental_blame() {
+    fn reads_hunks_and_boundaries_from_incremental_blame() {
         let sha = "a".repeat(40);
+        let old = "b".repeat(40);
         let output = format!(
-            "{sha} 1 1 3\nauthor Ada Lovelace Jr\nsummary a b c\nfilename x\n{sha} 4 4 2\nfilename x\n"
+            "{sha} 1 1 3\nauthor Ada Lovelace Jr\nsummary a b c\nfilename x\n{old} 2 4 2\nboundary\nfilename \"y z\"\n{sha} 4 6 1\nfilename x\n"
         );
-        assert_eq!(parse_blame(&output)[&sha], 5);
+        let raw = parse_blame(&output);
+        let spans: Vec<(&str, usize, usize, usize, &str)> = raw
+            .hunks
+            .iter()
+            .map(|h| {
+                (
+                    h.sha.as_str(),
+                    h.source_line,
+                    h.line,
+                    h.count,
+                    h.file.as_str(),
+                )
+            })
+            .collect();
+        assert_eq!(
+            spans,
+            [
+                (sha.as_str(), 1, 1, 3, "x"),
+                (old.as_str(), 2, 4, 2, "y z"),
+                (sha.as_str(), 4, 6, 1, "x")
+            ]
+        );
+        assert_eq!(raw.boundaries, BTreeSet::from([old]));
     }
 
     #[test]
     fn ignores_a_header_shaped_like_a_hunk() {
         let output = "author-tz +0100 1 1\nsummary 1 2 3\n";
-        assert!(parse_blame(output).is_empty());
+        assert!(parse_blame(output).hunks.is_empty());
+    }
+
+    #[test]
+    fn reads_boundary_lines_from_the_previous_sample() {
+        let new = "a".repeat(40);
+        let since = "b".repeat(40);
+        let mut names = Names::default();
+        let (one, two) = (names.id(&"1".repeat(40)), names.id(&"2".repeat(40)));
+        let names = Mutex::new(names);
+        let known = HashMap::from([("old.rs".to_string(), vec![one, two, one])]);
+        let output =
+            format!("{since} 2 1 2\nboundary\nfilename old.rs\n{new} 1 3 1\nfilename new.rs\n");
+        let owners = line_owners(&parse_blame(&output), Some(&since), &known, &names);
+        let fresh = names.lock().unwrap().id(&new);
+        assert_eq!(owners, Some(vec![two, one, fresh]));
+    }
+
+    #[test]
+    fn falls_back_when_a_boundary_is_not_the_previous_sample() {
+        let since = "b".repeat(40);
+        let older = "c".repeat(40);
+        let mut names = Names::default();
+        let known = HashMap::from([("x".to_string(), vec![names.id(&older)])]);
+        let names = Mutex::new(names);
+        let output = format!("{older} 1 1 1\nboundary\nfilename x\n");
+        assert_eq!(
+            line_owners(&parse_blame(&output), Some(&since), &known, &names),
+            None
+        );
+        let unknown = format!("{since} 1 1 1\nboundary\nfilename y\n");
+        assert_eq!(
+            line_owners(&parse_blame(&unknown), Some(&since), &known, &names),
+            None
+        );
+    }
+
+    #[test]
+    fn credits_a_root_commit_in_a_full_blame() {
+        let root = "d".repeat(40);
+        let names = Mutex::new(Names::default());
+        let output = format!("{root} 1 1 2\nboundary\nfilename x\n");
+        let owners = line_owners(&parse_blame(&output), None, &HashMap::new(), &names);
+        let id = names.lock().unwrap().id(&root);
+        assert_eq!(owners, Some(vec![id; 2]));
     }
 
     #[test]

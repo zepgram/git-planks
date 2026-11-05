@@ -670,6 +670,16 @@ pub fn sync_mirror(url: &str) -> Result<(PathBuf, Option<(String, String)>)> {
             without_credentials(url)
         );
     }
+    git::read(
+        Some(&mirror),
+        &[
+            "commit-graph",
+            "write",
+            "--reachable",
+            "--changed-paths",
+            "--split",
+        ],
+    )?;
     let tip = git::read(Some(&mirror), &["rev-parse", "--verify", FETCHED_REF])?
         .trim()
         .to_string();
