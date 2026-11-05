@@ -97,7 +97,7 @@ This lists the biggest jumps with the files behind them, and the largest counted
 
 1. Each repository is mirrored under `~/.cache/git-planks`. Your checkouts are never touched.
 2. One commit per week is taken from the first-parent history of the branch the remote serves as `HEAD` (Monday 00:00 UTC, plus the cut-off day). `--interval-weeks 26` makes very large histories affordable.
-3. Each file that changed since the previous sample goes through `git blame -w`, in parallel. A line belongs to the author of the commit that wrote it.
+3. Each file that changed since the previous sample goes through `git blame -w`, in parallel. A line belongs to the author of the commit that wrote it. Blame stops at the previous sample and lines already there keep the author found then, which gives the same result as a full blame; a full blame still runs when a merge brings in older history.
 4. Files are kept when their extension is a known text format and they match no exclusion: lockfiles, `vendor/`, `dist/`, generated code and similar. Everything sorted, nothing timestamped, so the same input gives the same bytes.
 
 ## Limits
