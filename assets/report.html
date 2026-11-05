@@ -228,7 +228,7 @@ const GROUPS = [...new Set(DATA.repos.map(r => r.group))].sort();
 const REPO_INDEX = new Map(DATA.repos.map((repo, index) => [repo.name, index]));
 const OTHER = '__other__';
 const ALL = '*all*';
-const VENDORS = [['anthropic', 'Anthropic'], ['openai', 'OpenAI']].filter(([key]) => DATA.events.some(event => event.type === 'model' && event.vendor === key));
+const VENDORS = [['anthropic', 'Anthropic'], ['openai', 'OpenAI'], ['google', 'Google'], ['xai', 'xAI'], ['deepseek', 'DeepSeek'], ['mistral', 'Mistral'], ['alibaba', 'Qwen'], ['moonshot', 'Kimi'], ['zai', 'GLM']].filter(([key]) => DATA.events.some(event => event.type === 'model' && event.vendor === key));
 const HAS_MODELS = VENDORS.length > 0;
 const YEAR = 365.25 * 86400000;
 const TYPES = [['human', 'People'], ['agent', 'Agents'], ['bot', 'Bots'], ['import', 'Imports']];

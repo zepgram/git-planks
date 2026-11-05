@@ -6,7 +6,17 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 
-pub const MODEL_VENDORS: [&str; 2] = ["anthropic", "openai"];
+pub const MODEL_VENDORS: [&str; 9] = [
+    "anthropic",
+    "openai",
+    "google",
+    "xai",
+    "deepseek",
+    "mistral",
+    "alibaba",
+    "moonshot",
+    "zai",
+];
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, default)]
@@ -122,7 +132,10 @@ impl Config {
         if let Some(vendor) = &self.models
             && !MODEL_VENDORS.contains(&vendor.as_str())
         {
-            bail!("unknown models `{vendor}`: use anthropic or openai");
+            bail!(
+                "unknown models `{vendor}`: use one of {}",
+                MODEL_VENDORS.join(", ")
+            );
         }
         Ok(())
     }
@@ -148,7 +161,7 @@ mod tests {
     fn refuses_an_unknown_model_vendor() {
         let config: Config = toml::from_str("models = \"openai\"").unwrap();
         assert!(config.validate().is_ok());
-        let config: Config = toml::from_str("models = \"mistral\"").unwrap();
+        let config: Config = toml::from_str("models = \"acme\"").unwrap();
         assert!(config.validate().is_err());
     }
 
