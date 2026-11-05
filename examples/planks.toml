@@ -2,6 +2,7 @@
 
 title = "Acme platform"
 # model_events = false      # hide AI model releases from the chart
+# models = "openai"         # releases shown first: anthropic (default) or openai, switchable in the report
 
 # One [[source]] per origin. `group` becomes a scope in the report.
 [[source]]

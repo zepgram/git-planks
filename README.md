@@ -69,6 +69,7 @@ A folder is analyzed at its checked-out `HEAD`, even detached, and needs its ful
 - **Filters you can read.** You complete a sentence: "Show lines alive by developer in all repositories over all history, written by everyone". Content and author types sit behind *More options*.
 - **Time travel.** Move over the chart and the ranking beside it follows the date. Click to pin a date. *Play history* replays the life of the code while people overtake one another.
 - **Findings you can act on**, each one a click away from the chart: how few people wrote half of the code, the half-life of a line, the fastest growth and the largest clean-up, the share of code whose authors have left.
+- **AI model releases on the timeline**, from Anthropic or OpenAI: pick one under *More options*, or set the default with `--models openai` or `models = "openai"`. The period *since Claude 4* (or *since Codex*) starts at the first one. They give context, not a cause.
 - **Monthly activity**, and **how long code lasts**, year by year.
 - **Everyone who wrote the code**, searchable, with their own curve, change, commits, retention and last activity.
 - **Links and images to share.** Every view has its own link, and *Save image* exports the chart as a PNG.

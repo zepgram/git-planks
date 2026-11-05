@@ -68,6 +68,9 @@ struct AnalyzeArgs {
     /// Do not overlay AI model releases
     #[arg(long)]
     no_model_events: bool,
+    /// Whose AI model releases the timeline shows first
+    #[arg(long, value_name = "VENDOR", value_parser = config::MODEL_VENDORS)]
+    models: Option<String>,
     /// Open the report when done
     #[arg(long)]
     open: bool,
@@ -232,6 +235,9 @@ fn run_analyze(args: AnalyzeArgs) -> Result<()> {
     }
     if args.no_model_events {
         config.model_events = Some(false);
+    }
+    if args.models.is_some() {
+        config.models = args.models;
     }
     let until = args
         .until
