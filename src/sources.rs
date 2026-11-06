@@ -152,7 +152,7 @@ fn owner_from_url(url: &str) -> Option<String> {
     (parts.len() >= 3).then(|| parts[parts.len() - 2].to_string())
 }
 
-fn agent() -> ureq::Agent {
+pub fn agent() -> ureq::Agent {
     ureq::Agent::config_builder()
         .max_redirects(0)
         .http_status_as_error(false)
@@ -162,7 +162,11 @@ fn agent() -> ureq::Agent {
         .into()
 }
 
-fn get_json(agent: &ureq::Agent, url: &str, headers: &[(&str, String)]) -> Result<(u16, Value)> {
+pub fn get_json(
+    agent: &ureq::Agent,
+    url: &str,
+    headers: &[(&str, String)],
+) -> Result<(u16, Value)> {
     let mut request = agent.get(url);
     for (name, value) in headers {
         request = request.header(*name, value);

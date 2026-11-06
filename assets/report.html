@@ -228,7 +228,8 @@ const GROUPS = [...new Set(DATA.repos.map(r => r.group))].sort();
 const REPO_INDEX = new Map(DATA.repos.map((repo, index) => [repo.name, index]));
 const OTHER = '__other__';
 const ALL = '*all*';
-const HAS_MODELS = DATA.events.some(event => event.type === 'model');
+const VENDORS = [['anthropic', 'Anthropic'], ['openai', 'OpenAI'], ['google', 'Google'], ['xai', 'xAI'], ['deepseek', 'DeepSeek'], ['mistral', 'Mistral'], ['alibaba', 'Qwen'], ['moonshot', 'Kimi'], ['zai', 'GLM']].filter(([key]) => DATA.events.some(event => event.type === 'model' && event.vendor === key));
+const HAS_MODELS = VENDORS.length > 0;
 const YEAR = 365.25 * 86400000;
 const TYPES = [['human', 'People'], ['agent', 'Agents'], ['bot', 'Bots'], ['import', 'Imports']];
 const TYPE_TAG = { agent: 'agent', bot: 'bot', import: 'import' };
@@ -237,7 +238,7 @@ const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const THEME_KEY = 'git-planks-theme';
 
 const defaults = () => ({
-  period: 'all', scope: ALL, person: ALL, dim: 'person', unit: 'lines', metric: 'added', isolate: null, sort: 'lines', sortDir: -1, events: true,
+  period: 'all', models: VENDORS.some(([key]) => key === DATA.models) ? DATA.models : VENDORS[0]?.[0], scope: ALL, person: ALL, dim: 'person', unit: 'lines', metric: 'added', isolate: null, sort: 'lines', sortDir: -1, events: true,
   kinds: new Set(DATA.kinds.filter(k => k.default).map(k => k.key)),
   types: new Set(TYPES.map(t => t[0])),
   date: null, pinned: false, query: '', limit: 40, refine: false,
@@ -289,7 +290,8 @@ const repoAllowed = index => {
 const personAllowed = index => (state.person !== ALL ? DATA.people[index].name === state.person : state.types.has(DATA.people[index].type));
 const kindAllowed = index => state.kinds.has(DATA.kinds[index].key);
 const kindMask = () => DATA.kinds.reduce((mask, kind, index) => (state.kinds.has(kind.key) ? mask | (1 << index) : mask), 0);
-const eventVisible = e => !e.repo || (REPO_INDEX.has(e.repo) && repoAllowed(REPO_INDEX.get(e.repo)));
+const eventVisible = e => (e.type !== 'model' || e.vendor === state.models) && (!e.repo || (REPO_INDEX.has(e.repo) && repoAllowed(REPO_INDEX.get(e.repo))));
+const firstModel = () => DATA.events.find(e => e.type === 'model' && e.vendor === state.models);
 const eventTime = e => Date.parse(`${e.date}T00:00:00Z`);
 
 const groupKey = (dim, row) => {
@@ -427,7 +429,7 @@ const compute = () => {
   view.first = first < 0 ? LAST : first;
   view.start = view.first;
   if (state.period !== 'all') {
-    const limit = state.period === 'claude4' ? Date.parse('2025-05-22T00:00:00Z') : TIMES[LAST] - Number(state.period) * 30.44 * 86400000;
+    const limit = state.period === 'models' ? eventTime(firstModel()) : TIMES[LAST] - Number(state.period) * 30.44 * 86400000;
     const index = TIMES.findIndex(time => time >= limit);
     view.start = Math.max(index < 0 ? 0 : index, view.first);
   }
@@ -556,10 +558,11 @@ const findings = () => {
     if (departed > 0) out.push({ say: `${percent(departed / total * 100)} of the surviving lines come from people with no commit in the last 12 months.`, why: 'Code whose authors may no longer be around to explain it.', go: () => setDim('person') });
   }
   if (HAS_MODELS) {
-    const reference = TIMES.findIndex(time => time >= Date.parse('2025-05-22T00:00:00Z'));
+    const model = firstModel();
+    const reference = TIMES.findIndex(time => time >= eventTime(model));
     if (reference > view.first && view.total[reference] > 0 && TIMES[reference] > TIMES[view.first] + YEAR) {
       const factor = total / view.total[reference];
-      out.push({ say: `The code ${factor >= 1 ? `grew ${factor.toLocaleString(LOCALE, { maximumFractionDigits: 2 })} times` : 'shrank'} since Claude 4 came out, in May 2025.`, why: 'A date for context, not a proof of cause.', go: () => setPeriod('claude4') });
+      out.push({ say: `The code ${factor >= 1 ? `grew ${factor.toLocaleString(LOCALE, { maximumFractionDigits: 2 })} times` : 'shrank'} since ${model.label} came out, in ${new Date(eventTime(model)).toLocaleDateString(LOCALE, { month: 'long', year: 'numeric', timeZone: 'UTC' })}.`, why: 'A date for context, not a proof of cause.', go: () => setPeriod('models') });
     }
   }
   return out;
@@ -1187,7 +1190,7 @@ const renderQuery = () => {
   }
   const people = [...totals.entries()].filter(e => e[1] > 0).sort((a, b) => b[1] - a[1]).slice(0, 300).map(e => [DATA.people[e[0]].name, DATA.people[e[0]].name]);
   if (state.person !== ALL && !people.some(p => p[0] === state.person)) people.unshift([state.person, state.person]);
-  const periods = [['all', 'over all history'], ...(HAS_MODELS ? [['claude4', 'since Claude 4']] : []), ['60', 'over 5 years'], ['24', 'over 2 years'], ['12', 'over 1 year'], ['6', 'over 6 months']];
+  const periods = [['all', 'over all history'], ...(HAS_MODELS ? [['models', `since ${firstModel().label}`]] : []), ['60', 'over 5 years'], ['24', 'over 2 years'], ['12', 'over 1 year'], ['6', 'over 6 months']];
   const refresh = () => { state.isolate = null; state.limit = 40; render(); };
   host.replaceChildren(
     document.createTextNode('Show '),
@@ -1200,6 +1203,11 @@ const renderQuery = () => {
     selectIn(periods, state.period, 'Period', value => { state.period = value; render(); }),
     document.createTextNode(', written by '),
     selectIn([[ALL, 'everyone'], ...people], state.person, 'Person', value => { state.person = value; refresh(); }),
+    ...(HAS_MODELS && state.events ? [
+      document.createTextNode(', with '),
+      selectIn(VENDORS, state.models, 'AI model releases', value => { state.models = value; render(); }),
+      document.createTextNode(' releases'),
+    ] : []),
     document.createTextNode('. '),
     el('span', { class: 'refine' }, el('button', { 'aria-expanded': String(state.refine), 'aria-controls': 'options', text: state.refine ? 'Fewer options' : 'More options', onclick: () => { state.refine = !state.refine; renderQuery(); renderOptions(); } })),
   );
@@ -1252,6 +1260,7 @@ const encodeHash = () => {
   if (list(state.kinds) !== list(initial.kinds)) params.set('content', list(state.kinds));
   if (list(state.types) !== list(initial.types)) params.set('authors', list(state.types));
   if (!state.events) params.set('events', 'off');
+  if (state.models !== initial.models) params.set('models', state.models);
   return params.toString();
 };
 const syncHash = () => {
@@ -1263,7 +1272,8 @@ const readHash = () => {
   const known = (value, allowed) => (allowed.includes(value) ? value : null);
   state.dim = known(params.get('by'), DIMS.map(d => d[0])) || state.dim;
   state.unit = known(params.get('unit'), ['lines', 'share']) || state.unit;
-  state.period = known(params.get('period'), ['all', 'claude4', '60', '24', '12', '6']) || state.period;
+  state.period = known(params.get('period') === 'claude4' ? 'models' : params.get('period'), ['all', 'models', '60', '24', '12', '6']) || state.period;
+  state.models = known(params.get('models'), VENDORS.map(v => v[0])) || state.models;
   const scope = params.get('in');
   if (scope && (scope.startsWith('group:') ? GROUPS.includes(scope.slice(6)) : REPO_INDEX.has(scope.slice(5)))) state.scope = scope;
   const person = params.get('person');

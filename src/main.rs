@@ -4,6 +4,7 @@ mod dates;
 mod engine;
 mod git;
 mod identities;
+mod models;
 mod output;
 mod rules;
 mod sources;
@@ -68,6 +69,9 @@ struct AnalyzeArgs {
     /// Do not overlay AI model releases
     #[arg(long)]
     no_model_events: bool,
+    /// Whose AI model releases the timeline shows first
+    #[arg(long, value_name = "VENDOR", value_parser = config::MODEL_VENDORS)]
+    models: Option<String>,
     /// Open the report when done
     #[arg(long)]
     open: bool,
@@ -107,6 +111,12 @@ enum Commands {
         /// Reuse cached blame: faster, but it does not check the cache itself
         #[arg(long)]
         cached: bool,
+    },
+    /// Add the AI model releases models.dev lists since the last known one of each lab
+    #[command(hide = true)]
+    UpdateModels {
+        #[arg(default_value = "assets/model-events.json")]
+        file: PathBuf,
     },
 }
 
@@ -233,6 +243,9 @@ fn run_analyze(args: AnalyzeArgs) -> Result<()> {
     if args.no_model_events {
         config.model_events = Some(false);
     }
+    if args.models.is_some() {
+        config.models = args.models;
+    }
     let until = args
         .until
         .unwrap_or_else(|| dates::format_date(dates::today()));
@@ -318,6 +331,7 @@ fn run() -> Result<()> {
         }
         Commands::Audit { directory, top } => checks::audit(&directory, top),
         Commands::Verify { directory, cached } => checks::verify(&directory, cached),
+        Commands::UpdateModels { file } => models::update(&file),
     }
 }
 

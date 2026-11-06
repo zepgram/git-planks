@@ -1,4 +1,4 @@
-use crate::config::Config;
+use crate::config::{Config, MODEL_VENDORS};
 use crate::dates;
 use crate::git;
 use crate::identities::{IMPORT_PERSON, Identities, Identity};
@@ -937,6 +937,7 @@ pub fn analyze(mut manifest: Manifest, fresh: bool) -> Result<Outcome> {
         "cohorts": cohorts,
         "months": months,
         "events": events,
+        "models": config.models.as_deref().unwrap_or(MODEL_VENDORS[0]),
         "series": series,
         "activity": activity_rows,
         "commits": commit_rows,

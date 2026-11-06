@@ -6,11 +6,24 @@ use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 use std::path::Path;
 
+pub const MODEL_VENDORS: [&str; 9] = [
+    "anthropic",
+    "openai",
+    "google",
+    "xai",
+    "deepseek",
+    "mistral",
+    "alibaba",
+    "moonshot",
+    "zai",
+];
+
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct Config {
     pub title: Option<String>,
     pub model_events: Option<bool>,
+    pub models: Option<String>,
     #[serde(skip_serializing)]
     pub source: Vec<SourceConfig>,
     pub rules: Rules,
@@ -116,6 +129,14 @@ impl Config {
         for event in &self.event {
             dates::parse_date(&event.date)?;
         }
+        if let Some(vendor) = &self.models
+            && !MODEL_VENDORS.contains(&vendor.as_str())
+        {
+            bail!(
+                "unknown models `{vendor}`: use one of {}",
+                MODEL_VENDORS.join(", ")
+            );
+        }
         Ok(())
     }
 
@@ -134,6 +155,14 @@ mod tests {
     #[test]
     fn rejects_unknown_keys_instead_of_ignoring_a_typo() {
         assert!(toml::from_str::<Config>("titel = \"x\"").is_err());
+    }
+
+    #[test]
+    fn refuses_an_unknown_model_vendor() {
+        let config: Config = toml::from_str("models = \"openai\"").unwrap();
+        assert!(config.validate().is_ok());
+        let config: Config = toml::from_str("models = \"acme\"").unwrap();
+        assert!(config.validate().is_err());
     }
 
     #[test]
