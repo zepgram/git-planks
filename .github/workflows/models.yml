@@ -1,0 +1,40 @@
+name: Model releases
+
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: rustup update stable && rustup default stable
+      - run: cargo run --locked -- update-models assets/model-events.json | tee releases.txt
+      - run: cargo test --locked
+      - name: Open a pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git diff --quiet -- assets/model-events.json && exit 0
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c chore/model-releases
+          git commit -m "chore: add the latest AI model releases" -- assets/model-events.json
+          git push --force origin chore/model-releases
+          [ "$(gh pr view chore/model-releases --json state -q .state 2>/dev/null)" = OPEN ] && exit 0
+          {
+            echo "Releases listed on [models.dev](https://models.dev) since the last known one of each lab:"
+            echo
+            echo '```'
+            cat releases.txt
+            echo '```'
+            echo
+            echo "Check each date and label before merging; edit the branch to drop a variant."
+          } > body.md
+          gh pr create --head chore/model-releases --title "chore: add the latest AI model releases" --body-file body.md

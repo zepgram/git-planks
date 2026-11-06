@@ -64,6 +64,8 @@
   { "date": "2026-08-13", "label": "DeepSeek V4 Pro", "type": "model", "vendor": "deepseek" },
   { "date": "2026-08-13", "label": "Gemini 3.7 Flash", "type": "model", "vendor": "google" },
   { "date": "2026-08-14", "label": "GLM-5.3", "type": "model", "vendor": "zai" },
+  { "date": "2026-08-26", "label": "Qwen3.8 Flash", "type": "model", "vendor": "alibaba" },
+  { "date": "2026-08-26", "label": "GLM-5.3-Flash", "type": "model", "vendor": "zai" },
   { "date": "2026-09-01", "label": "Fable 5.1", "type": "model", "vendor": "anthropic" },
   { "date": "2026-09-02", "label": "Gemini 3.8 Flash", "type": "model", "vendor": "google" },
   { "date": "2026-09-04", "label": "GPT-6", "type": "model", "vendor": "openai" },

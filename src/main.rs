@@ -4,6 +4,7 @@ mod dates;
 mod engine;
 mod git;
 mod identities;
+mod models;
 mod output;
 mod rules;
 mod sources;
@@ -110,6 +111,12 @@ enum Commands {
         /// Reuse cached blame: faster, but it does not check the cache itself
         #[arg(long)]
         cached: bool,
+    },
+    /// Add the AI model releases models.dev lists since the last known one of each lab
+    #[command(hide = true)]
+    UpdateModels {
+        #[arg(default_value = "assets/model-events.json")]
+        file: PathBuf,
     },
 }
 
@@ -324,6 +331,7 @@ fn run() -> Result<()> {
         }
         Commands::Audit { directory, top } => checks::audit(&directory, top),
         Commands::Verify { directory, cached } => checks::verify(&directory, cached),
+        Commands::UpdateModels { file } => models::update(&file),
     }
 }
 
