@@ -1203,6 +1203,11 @@ const renderQuery = () => {
     selectIn(periods, state.period, 'Period', value => { state.period = value; render(); }),
     document.createTextNode(', written by '),
     selectIn([[ALL, 'everyone'], ...people], state.person, 'Person', value => { state.person = value; refresh(); }),
+    ...(HAS_MODELS && state.events ? [
+      document.createTextNode(', with '),
+      selectIn(VENDORS, state.models, 'AI model releases', value => { state.models = value; render(); }),
+      document.createTextNode(' releases'),
+    ] : []),
     document.createTextNode('. '),
     el('span', { class: 'refine' }, el('button', { 'aria-expanded': String(state.refine), 'aria-controls': 'options', text: state.refine ? 'Fewer options' : 'More options', onclick: () => { state.refine = !state.refine; renderQuery(); renderOptions(); } })),
   );
@@ -1221,12 +1226,7 @@ const renderOptions = () => {
   host.replaceChildren(
     el('fieldset', {}, el('legend', { text: 'Content' }), ...DATA.kinds.map(kind => box(kind.label, state.kinds.has(kind.key), toggle(state.kinds, kind.key)))),
     el('fieldset', {}, el('legend', { text: 'Authors' }), ...TYPES.map(([key, label]) => box(label, state.types.has(key), toggle(state.types, key)))),
-    el('fieldset', {}, el('legend', { text: 'Timeline' }), box('Show events', state.events, on => { state.events = on; render(); }),
-      ...(VENDORS.length > 1 ? VENDORS.map(([key, label]) => {
-        const input = el('input', { type: 'radio', name: 'models', onchange: () => { state.models = key; render(); } });
-        input.checked = state.models === key;
-        return el('label', {}, input, document.createTextNode(`${label} models`));
-      }) : [])),
+    el('fieldset', {}, el('legend', { text: 'Timeline' }), box('Show events', state.events, on => { state.events = on; render(); })),
   );
 };
 
